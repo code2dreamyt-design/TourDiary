@@ -15,12 +15,19 @@ export default function HomeScreen({ navigation }) {
   const [diary, setDiary] = useState(null);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [todayEntry, setTodayEntry] = useState(null);
+  const [editing, setEditing] = useState(false); // false = read-only "completed" view; true = the fill/edit form
 
   const [fromLocation, setFromLocation] = useState('');
   const [toLocation, setToLocation] = useState('');
   const [remarks, setRemarks] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+
+  function resetFormFrom(entry) {
+    setFromLocation((entry && entry.from_location) || '');
+    setToLocation((entry && entry.to_location) || '');
+    setRemarks((entry && entry.remarks) || '');
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,9 +38,11 @@ export default function HomeScreen({ navigation }) {
       setDiary(d);
       setProgress(p);
       setTodayEntry(entry);
-      setFromLocation((entry && entry.from_location) || '');
-      setToLocation((entry && entry.to_location) || '');
-      setRemarks((entry && entry.remarks) || '');
+      resetFormFrom(entry);
+      // A freshly-empty day opens straight into the fill form (no extra tap
+      // needed); an already-completed day opens as a read-only summary with
+      // an Edit button, rather than showing raw inputs by default.
+      setEditing(!entry || entry.status !== 'COMPLETED');
     } catch (e) {
       setError('Unable to load your current diary. Please try again.');
     } finally {
@@ -46,6 +55,18 @@ export default function HomeScreen({ navigation }) {
       load();
     }, [load])
   );
+
+  function handleStartEdit() {
+    resetFormFrom(todayEntry);
+    setSaveError(null);
+    setEditing(true);
+  }
+
+  function handleCancelEdit() {
+    resetFormFrom(todayEntry);
+    setSaveError(null);
+    setEditing(false);
+  }
 
   async function handleSaveToday() {
     if (!todayEntry) return;
@@ -61,6 +82,7 @@ export default function HomeScreen({ navigation }) {
       setTodayEntry(updated);
       const p = await diaryService.getDiaryProgress(diary.id);
       setProgress(p);
+      setEditing(false); // snap back to the completed summary view on success
     } catch (err) {
       setSaveError(err.message || 'Unable to save today\u2019s entry. Please try again.');
     } finally {
@@ -94,7 +116,31 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {todayEntry && (
+      {todayEntry && !editing && (
+        <View style={[styles.card, styles.cardCompleted]}>
+          <View style={styles.todayHeaderRow}>
+            <Text style={styles.todayTitle}>Today {'\u2014'} {formatDisplayDate(todayEntry.date)}</Text>
+            <View style={styles.badgeCompleted}>
+              <Text style={styles.badgeCompletedText}>{'\u2713'} Completed</Text>
+            </View>
+          </View>
+
+          <Text style={styles.fieldLabel}>From</Text>
+          <Text style={styles.fieldValue}>{todayEntry.from_location}</Text>
+          <Text style={styles.fieldLabel}>To</Text>
+          <Text style={styles.fieldValue}>{todayEntry.to_location}</Text>
+          <Text style={styles.fieldLabel}>Remarks</Text>
+          <Text style={styles.fieldValue}>{todayEntry.remarks}</Text>
+          <Text style={styles.fieldLabel}>Photo</Text>
+          <EntryPhotoState photoPath={todayEntry.photo_path} />
+
+          <TouchableOpacity style={styles.primaryButton} onPress={handleStartEdit} accessibilityRole="button">
+            <Text style={styles.primaryButtonText}>Edit Entry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {todayEntry && editing && (
         <View style={styles.card}>
           <Text style={styles.todayTitle}>Today {'\u2014'} {formatDisplayDate(todayEntry.date)}</Text>
 
@@ -139,6 +185,12 @@ export default function HomeScreen({ navigation }) {
           >
             {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.primaryButtonText}>{"Save Today's Entry"}</Text>}
           </TouchableOpacity>
+
+          {todayEntry.status === 'COMPLETED' && (
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit} disabled={saving} accessibilityRole="button">
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -159,7 +211,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   monthTitle: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
+  cardCompleted: { borderColor: COLORS.success, borderWidth: 1.5 },
+  todayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
+  badgeCompleted: { backgroundColor: COLORS.successBg, paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: RADIUS.sm },
+  badgeCompletedText: { color: COLORS.success, fontWeight: '700', fontSize: FONT_SIZE.sm },
   todayTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  fieldValue: { fontSize: FONT_SIZE.base, color: COLORS.textPrimary, marginTop: 2 },
   errorText: { color: COLORS.danger, marginTop: SPACING.sm },
   fieldLabel: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.md, fontWeight: '600' },
   input: {
@@ -184,6 +241,13 @@ const styles = StyleSheet.create({
   },
   primaryButtonDisabled: { opacity: 0.6 },
   primaryButtonText: { color: COLORS.white, fontWeight: '700', fontSize: FONT_SIZE.md },
+  cancelButton: {
+    marginTop: SPACING.sm,
+    minHeight: TOUCH_TARGET_MIN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: FONT_SIZE.base },
   credit: {
     textAlign: 'center',
     color: COLORS.textMuted,

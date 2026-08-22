@@ -141,14 +141,6 @@ export async function watchLocation(callback) {
 }
 
 // --- File management ---------------------------------------------------------
-const PHOTOS_DIR = `${FileSystem.documentDirectory}photos/`;
-
-async function ensurePhotosDir() {
-  const info = await FileSystem.getInfoAsync(PHOTOS_DIR);
-  if (!info.exists) {
-    await FileSystem.makeDirectoryAsync(PHOTOS_DIR, { intermediates: true });
-  }
-}
 
 /** Deletes a file at the given uri if it exists. Never throws. */
 export async function deleteFileIfExists(uri) {
@@ -164,7 +156,13 @@ export async function deleteFileIfExists(uri) {
   }
 }
 
-/** True if a file exists at the given path (used to detect a photo the user deleted outside the app). */
+/**
+ * True if a photo is still there. Used to detect a photo the user deleted
+ * outside the app (from their Gallery) — since photos live in the device's
+ * public gallery now (not a private app-only copy), this is a real,
+ * meaningful check: the user has full control, and deleting it from their
+ * Gallery app is reflected here.
+ */
 export async function fileExists(uri) {
   if (!uri) return false;
   try {
@@ -176,25 +174,19 @@ export async function fileExists(uri) {
 }
 
 /**
- * Moves a composited photo from cache into permanent app storage, named by
- * entry id so re-saves for the same entry are easy to reason about. If an
- * old photo already existed for this entry, deletes it first (replace).
- * Returns the final permanent path.
+ * Saves a finished (already-stamped) photo to the device's public Gallery —
+ * this is the ONE and ONLY place a photo ends up. There is no separate
+ * private app-storage copy: whether a photo is attached to a diary entry or
+ * not, it lives in the Gallery, and the app just remembers the path when
+ * it's attached to an entry. Deletes the disposable cache copy afterward.
+ * Returns the Gallery asset's path, suitable for both <Image> display and
+ * fileExists() checks (on Android this is a real file:// path into the
+ * device's MediaStore).
  */
-export async function savePhotoPermanently(sourceUri, entryId, previousPhotoPath) {
-  await ensurePhotosDir();
-  if (previousPhotoPath) {
-    await deleteFileIfExists(previousPhotoPath);
-  }
-  const destUri = `${PHOTOS_DIR}entry_${entryId}_${Date.now()}.jpg`;
-  await FileSystem.copyAsync({ from: sourceUri, to: destUri });
-  await deleteFileIfExists(sourceUri);
-  return destUri;
-}
-
-/** Saves a photo to the device's gallery/camera roll — used when the photo isn't attached to any entry. */
-export async function saveToGallery(uri) {
-  await MediaLibrary.saveToLibraryAsync(uri);
+export async function saveToDeviceGallery(localUri) {
+  const asset = await MediaLibrary.createAssetAsync(localUri);
+  await deleteFileIfExists(localUri);
+  return asset.uri;
 }
 
 // --- Compositing orchestration ------------------------------------------

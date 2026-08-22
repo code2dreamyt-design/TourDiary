@@ -26,6 +26,11 @@ export default function AppTabBar({ state, descriptors, navigation }) {
   const cameraRoute = state.routes.find((r) => r.name === 'Camera');
   const cameraFocused = state.routes[state.index]?.name === 'Camera';
 
+  // The whole bottom bar (regular tabs + floating camera button) hides
+  // completely while the Camera screen is active — nothing to navigate to
+  // while composing a shot, and it keeps the viewfinder full-screen.
+  if (cameraFocused) return null;
+
   function goTo(route, isFocused) {
     const event = navigation.emit({
       type: 'tabPress',

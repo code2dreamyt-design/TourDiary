@@ -60,8 +60,13 @@ const PhotoCompositor = forwardRef((props, ref) => {
   const positionStyle = BOX_POSITION_STYLES[box.position] || BOX_POSITION_STYLES['bottom-left'];
 
   return (
-    // Positioned far off-screen (not just hidden/opacity 0) — react-native-view-shot
-    // can still capture it there, and this guarantees it never flashes on screen.
+    // Clipped into a 1x1 box (not flung to an extreme off-screen coordinate)
+    // — react-native-view-shot captures the ViewShot's own rendered bitmap at
+    // its full styled size regardless of this clipping, so the output image
+    // is unaffected, but rendering stays within normal on-screen bounds.
+    // Positioning content extremely far off-screen (e.g. top/left: -100000)
+    // can cause some Android GPUs to rasterize it with a dark/washed-out
+    // tint instead of rendering it cleanly — this avoids that entirely.
     <View style={styles.offscreenContainer} pointerEvents="none">
       <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.92 }} style={{ width, height }}>
         <View style={{ width, height }}>
@@ -89,8 +94,11 @@ export default PhotoCompositor;
 const styles = StyleSheet.create({
   offscreenContainer: {
     position: 'absolute',
-    top: -100000,
-    left: -100000,
+    top: 0,
+    left: 0,
+    width: 1,
+    height: 1,
+    overflow: 'hidden',
   },
   box: {
     position: 'absolute',

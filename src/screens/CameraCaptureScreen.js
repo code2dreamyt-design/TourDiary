@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import * as photoService from '../services/photoService';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE } from '../constants/dimensions';
@@ -21,9 +22,12 @@ export default function CameraCaptureScreen({ navigation }) {
   const [location, setLocation] = useState(null); // { latitude, longitude, altitude, accuracy }
   const [now, setNow] = useState(new Date());
   const [capturing, setCapturing] = useState(false);
+  const [pictureSize, setPictureSize] = useState(null); // "1920x1080" — chosen once, from the device's own supported sizes
+  const [previewRatio, setPreviewRatio] = useState(3 / 4); // matches pictureSize once known, so preview framing == actual capture
 
   const cameraRef = useRef(null);
   const locationSubRef = useRef(null);
+  const sizePickedRef = useRef(false);
 
   const setupPermissionsAndWatch = useCallback(async () => {
     const result = await photoService.requestAllPermissions({ requestCameraPermission });
@@ -33,6 +37,43 @@ export default function CameraCaptureScreen({ navigation }) {
       locationSubRef.current = await photoService.watchLocation(setLocation);
     }
   }, [requestCameraPermission]);
+
+  // Picks the device's largest supported photo size once the camera is
+  // ready, and makes the on-screen preview match that exact ratio — so
+  // what's framed on screen is exactly what ends up in the saved photo,
+  // instead of the preview being stretched to fill the whole (differently
+  // shaped) device screen while the capture uses some other default ratio.
+  async function handleCameraReady() {
+    if (sizePickedRef.current || !cameraRef.current) return;
+    sizePickedRef.current = true;
+    try {
+      const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
+      if (!sizes || sizes.length === 0) return; // fall back to default behavior
+      let best = null;
+      let bestArea = 0;
+      for (const s of sizes) {
+        const [wStr, hStr] = s.split('x');
+        const w = parseInt(wStr, 10);
+        const h = parseInt(hStr, 10);
+        if (!w || !h) continue;
+        const area = w * h;
+        if (area > bestArea) {
+          bestArea = area;
+          best = { size: s, w, h };
+        }
+      }
+      if (best) {
+        setPictureSize(best.size);
+        // Sizes are reported in the sensor's natural (landscape) orientation —
+        // display the preview in portrait proportions (matching how the phone
+        // is actually held), i.e. the smaller dimension over the larger one.
+        setPreviewRatio(Math.min(best.w, best.h) / Math.max(best.w, best.h));
+      }
+    } catch (e) {
+      // Some devices/emulators don't support this — preview just keeps the
+      // default 3:4 ratio rather than breaking.
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -93,18 +134,42 @@ export default function CameraCaptureScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flashOn ? 'on' : 'off'} />
+      <View style={[styles.previewWrapper, { aspectRatio: previewRatio }]}>
+        <CameraView
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing={facing}
+          flash={flashOn ? 'on' : 'off'}
+          pictureSize={pictureSize || undefined}
+          onCameraReady={handleCameraReady}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => navigation.navigate('Home')}
+        accessibilityRole="button"
+        accessibilityLabel="Close camera"
+      >
+        <Ionicons name="close" size={26} color={COLORS.white} />
+      </TouchableOpacity>
 
       <View style={styles.topControls}>
         <TouchableOpacity
           style={styles.controlButton}
           onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
           accessibilityRole="button"
+          accessibilityLabel="Flip camera"
         >
-          <Text style={styles.controlButtonText}>Flip</Text>
+          <Ionicons name="camera-reverse-outline" size={24} color={COLORS.white} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.controlButton} onPress={() => setFlashOn((v) => !v)} accessibilityRole="button">
-          <Text style={styles.controlButtonText}>{flashOn ? 'Flash On' : 'Flash Off'}</Text>
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={() => setFlashOn((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={flashOn ? 'Turn flash off' : 'Turn flash on'}
+        >
+          <Ionicons name={flashOn ? 'flash' : 'flash-off'} size={24} color={COLORS.white} />
         </TouchableOpacity>
       </View>
 
@@ -135,7 +200,15 @@ export default function CameraCaptureScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  previewWrapper: {
+    width: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
+    alignSelf: 'center',
+    backgroundColor: '#000',
+    overflow: 'hidden',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -156,6 +229,17 @@ const styles = StyleSheet.create({
     top: SPACING.xl,
     right: SPACING.lg,
     gap: SPACING.sm,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: SPACING.xl,
+    left: SPACING.lg,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: RADIUS.md,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   controlButton: {
     backgroundColor: 'rgba(0,0,0,0.55)',

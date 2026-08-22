@@ -80,8 +80,7 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
 
   async function saveAsGalleryOnly() {
     const finalUri = await finalizeImage();
-    await photoService.saveToGallery(finalUri);
-    await photoService.deleteFileIfExists(finalUri);
+    await photoService.saveToDeviceGallery(finalUri);
     confirmedRef.current = true;
     Alert.alert('Saved', 'Photo saved to your gallery.');
     navigation.goBack();
@@ -89,16 +88,16 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
 
   async function saveAttachedToEntry() {
     const finalUri = await finalizeImage();
-    const permanentPath = await photoService.savePhotoPermanently(
-      finalUri,
-      todayEntry.id,
-      todayEntry.photo_path
-    );
+    // Always the same one Gallery copy — attaching just means the entry
+    // remembers its path. No separate private app-storage copy, and we
+    // never delete the old gallery photo on Replace: the user has full
+    // control over their Gallery, the app only ever adds to it.
+    const galleryPath = await photoService.saveToDeviceGallery(finalUri);
     await diaryService.saveEntryWithPhoto(todayEntry.id, {
       fromLocation,
       toLocation,
       remarks: note,
-      photoPath: permanentPath,
+      photoPath: galleryPath,
     });
     confirmedRef.current = true;
     Alert.alert('Saved', "Photo attached to today's diary entry.");
