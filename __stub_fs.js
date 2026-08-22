@@ -1,0 +1,1 @@
+module.exports = { documentDirectory: "/fake/", getInfoAsync: async () => ({exists:false}), makeDirectoryAsync: async () => {}, deleteAsync: async () => {}, copyAsync: async () => {} };

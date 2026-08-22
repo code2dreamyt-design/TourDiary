@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 import { formatDisplayDate } from '../utils/dateUtils';
+import EntryPhotoState from './EntryPhotoState';
 
 // Status is never conveyed by color alone — each state also has an icon + label.
 export default function DiaryEntryCard({ entry, editable, onPressEdit, onPressFill }) {
@@ -37,6 +38,8 @@ export default function DiaryEntryCard({ entry, editable, onPressEdit, onPressFi
           <Text style={styles.fieldValue}>{entry.to_location}</Text>
           <Text style={styles.fieldLabel}>Remarks</Text>
           <Text style={styles.fieldValue}>{entry.remarks}</Text>
+          <Text style={styles.fieldLabel}>Photo</Text>
+          <EntryPhotoState photoPath={entry.photo_path} />
         </View>
       ) : (
         <Text style={styles.placeholderText}>

@@ -28,6 +28,15 @@ export async function findEntryById(entryId) {
   return db.getFirstAsync('SELECT * FROM diary_entries WHERE id = ?;', [entryId]);
 }
 
+// Used to find "today's" entry within a diary without loading the whole month.
+export async function findEntryByDiaryIdAndDate(diaryId, date) {
+  const db = await getDatabase();
+  return db.getFirstAsync(
+    'SELECT * FROM diary_entries WHERE diary_id = ? AND date = ?;',
+    [diaryId, date]
+  );
+}
+
 // Updates the existing row in place — this is the ONLY write path for entry
 // content, used by both "fill" and "edit" flows, so a save can never create
 // a duplicate row for the same date.
@@ -48,6 +57,17 @@ export async function countEntriesByStatus(diaryId, status) {
     [diaryId, status]
   );
   return row ? row.count : 0;
+}
+
+// Sets (or clears, if photoPath is null) the entry's attached photo path
+// without touching from_location/to_location/remarks/status. Used when a
+// completed entry keeps its text but gets a new/updated photo.
+export async function updateEntryPhotoPath(entryId, photoPath, timestamp) {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE diary_entries SET photo_path = ?, updated_at = ? WHERE id = ?;',
+    [photoPath, timestamp, entryId]
+  );
 }
 
 export async function countAllEntries(diaryId) {

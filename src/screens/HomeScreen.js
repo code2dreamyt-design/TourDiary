@@ -1,24 +1,39 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as diaryService from '../services/diaryService';
 import ProgressBar from '../components/ProgressBar';
+import EntryPhotoState from '../components/EntryPhotoState';
+import { validateEntry } from '../utils/validation';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
-import { getMonthName, getCurrentMonthYear } from '../utils/dateUtils';
+import { getMonthName, getCurrentMonthYear, formatDisplayDate } from '../utils/dateUtils';
 
 export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [diary, setDiary] = useState(null);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
+  const [todayEntry, setTodayEntry] = useState(null);
+
+  const [fromLocation, setFromLocation] = useState('');
+  const [toLocation, setToLocation] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const diary = await diaryService.getOrCreateCurrentMonthDiary();
-      const p = await diaryService.getDiaryProgress(diary.id);
+      const { diary: d, entry } = await diaryService.getTodayEntryContext();
+      const p = await diaryService.getDiaryProgress(d.id);
+      setDiary(d);
       setProgress(p);
+      setTodayEntry(entry);
+      setFromLocation((entry && entry.from_location) || '');
+      setToLocation((entry && entry.to_location) || '');
+      setRemarks((entry && entry.remarks) || '');
     } catch (e) {
       setError('Unable to load your current diary. Please try again.');
     } finally {
@@ -31,6 +46,27 @@ export default function HomeScreen({ navigation }) {
       load();
     }, [load])
   );
+
+  async function handleSaveToday() {
+    if (!todayEntry) return;
+    const validation = validateEntry({ fromLocation, toLocation, remarks });
+    if (!validation.valid) {
+      setSaveError(validation.message);
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await diaryService.saveEntry(todayEntry.id, { fromLocation, toLocation, remarks });
+      setTodayEntry(updated);
+      const p = await diaryService.getDiaryProgress(diary.id);
+      setProgress(p);
+    } catch (err) {
+      setSaveError(err.message || 'Unable to save today\u2019s entry. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const { month, year } = getCurrentMonthYear();
 
@@ -51,28 +87,60 @@ export default function HomeScreen({ navigation }) {
         {error ? <Text style={styles.errorText}>{error}</Text> : <ProgressBar completed={progress.completed} total={progress.total} />}
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('CurrentDiary')}
+          onPress={() => diary && navigation.navigate('DiaryDetails', { diaryId: diary.id })}
           accessibilityRole="button"
         >
           <Text style={styles.primaryButtonText}>Continue Current Diary</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('CreateDiary')} accessibilityRole="button">
-        <Text style={styles.secondaryButtonText}>Create Full Diary</Text>
-      </TouchableOpacity>
+      {todayEntry && (
+        <View style={styles.card}>
+          <Text style={styles.todayTitle}>Today {'\u2014'} {formatDisplayDate(todayEntry.date)}</Text>
 
-      <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('MyDiaries')} accessibilityRole="button">
-        <Text style={styles.secondaryButtonText}>My Diaries</Text>
-      </TouchableOpacity>
+          <Text style={styles.fieldLabel}>From</Text>
+          <TextInput
+            style={styles.input}
+            value={fromLocation}
+            onChangeText={setFromLocation}
+            placeholder="From"
+            placeholderTextColor={COLORS.textMuted}
+          />
 
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => navigation.navigate('ProfileSetup', { mode: 'edit' })}
-        accessibilityRole="button"
-      >
-        <Text style={styles.secondaryButtonText}>My Profile</Text>
-      </TouchableOpacity>
+          <Text style={styles.fieldLabel}>To</Text>
+          <TextInput
+            style={styles.input}
+            value={toLocation}
+            onChangeText={setToLocation}
+            placeholder="To"
+            placeholderTextColor={COLORS.textMuted}
+          />
+
+          <Text style={styles.fieldLabel}>Remarks</Text>
+          <TextInput
+            style={[styles.input, styles.remarksInput]}
+            value={remarks}
+            onChangeText={setRemarks}
+            placeholder="Remarks"
+            placeholderTextColor={COLORS.textMuted}
+            multiline
+          />
+
+          <Text style={styles.fieldLabel}>Photo</Text>
+          <EntryPhotoState photoPath={todayEntry.photo_path} />
+
+          {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
+
+          <TouchableOpacity
+            style={[styles.primaryButton, saving && styles.primaryButtonDisabled]}
+            onPress={handleSaveToday}
+            disabled={saving}
+            accessibilityRole="button"
+          >
+            {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.primaryButtonText}>{"Save Today's Entry"}</Text>}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Text style={styles.credit}>Developed by Vikas Justa</Text>
     </ScrollView>
@@ -91,7 +159,21 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   monthTitle: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
+  todayTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
   errorText: { color: COLORS.danger, marginTop: SPACING.sm },
+  fieldLabel: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.md, fontWeight: '600' },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    padding: SPACING.md,
+    fontSize: FONT_SIZE.base,
+    color: COLORS.textPrimary,
+    marginTop: SPACING.xs,
+    backgroundColor: COLORS.background,
+    minHeight: TOUCH_TARGET_MIN,
+  },
+  remarksInput: { minHeight: 80, textAlignVertical: 'top' },
   primaryButton: {
     marginTop: SPACING.lg,
     backgroundColor: COLORS.primary,
@@ -100,18 +182,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primaryButtonDisabled: { opacity: 0.6 },
   primaryButtonText: { color: COLORS.white, fontWeight: '700', fontSize: FONT_SIZE.md },
-  secondaryButton: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    minHeight: TOUCH_TARGET_MIN,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.md,
-  },
-  secondaryButtonText: { color: COLORS.primary, fontWeight: '700', fontSize: FONT_SIZE.base },
   credit: {
     textAlign: 'center',
     color: COLORS.textMuted,

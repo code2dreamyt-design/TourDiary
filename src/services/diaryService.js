@@ -8,6 +8,7 @@ import {
   isFutureDate,
   isDateInCurrentMonth,
   getCurrentMonthYear,
+  getTodayLocalDateString,
 } from '../utils/dateUtils';
 
 // Audit-only timestamp (NOT used for any date-comparison logic — see dateUtils.js header).
@@ -76,6 +77,18 @@ export async function getOrCreateCurrentMonthDiary() {
   const existing = await getDiary(month, year);
   if (existing) return existing;
   return createDiary(month, year);
+}
+
+/**
+ * Resolves (auto-creating if needed) the current month's diary and returns
+ * today's entry row within it, for the Home screen's inline "today" card
+ * and the camera's "add to today's entry" flow.
+ */
+export async function getTodayEntryContext() {
+  const diary = await getOrCreateCurrentMonthDiary();
+  const today = getTodayLocalDateString();
+  const entry = await entryRepo.findEntryByDiaryIdAndDate(diary.id, today);
+  return { diary, entry };
 }
 
 /** All diaries, newest month first, each annotated with progress info. */
@@ -158,6 +171,23 @@ export async function saveEntry(entryId, { fromLocation, toLocation, remarks }) 
 
 // Editing a completed entry goes through the exact same update-in-place path.
 export const updateEntry = saveEntry;
+
+/**
+ * Saves From/To/Remarks AND attaches a photo to the entry in one atomic
+ * step — used by the camera flow's "add to today's entry" path (both the
+ * EMPTY-entry direct-save case and the COMPLETED-entry "Replace" case).
+ * Reuses saveEntry() itself rather than duplicating the update logic.
+ */
+export async function saveEntryWithPhoto(entryId, { fromLocation, toLocation, remarks, photoPath }) {
+  const db = await getDatabase();
+  let result;
+  await db.withTransactionAsync(async () => {
+    result = await saveEntry(entryId, { fromLocation, toLocation, remarks });
+    const timestamp = nowIso();
+    await entryRepo.updateEntryPhotoPath(entryId, photoPath, timestamp);
+  });
+  return entryRepo.findEntryById(entryId);
+}
 
 export async function getDiaryProgress(diaryId) {
   const total = await entryRepo.countAllEntries(diaryId);

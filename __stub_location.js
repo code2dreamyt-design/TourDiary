@@ -1,0 +1,1 @@
+module.exports = { Accuracy: { BestForNavigation: 6 }, requestForegroundPermissionsAsync: async () => ({status:"granted"}), watchPositionAsync: async () => ({remove(){}}) };

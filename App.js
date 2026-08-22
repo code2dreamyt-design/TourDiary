@@ -10,14 +10,14 @@ import { COLORS } from './src/constants/colors';
 export default function App() {
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState(null);
-  const [initialRoute, setInitialRoute] = useState('Home');
+  const [initialRoute, setInitialRoute] = useState('MainTabs');
 
   useEffect(() => {
     (async () => {
       try {
         await runMigrations();
         const profileComplete = await profileService.hasProfile();
-        setInitialRoute(profileComplete ? 'Home' : 'ProfileSetup');
+        setInitialRoute(profileComplete ? 'MainTabs' : 'ProfileSetup');
         setReady(true);
       } catch (e) {
         setInitError('Unable to start the app database. Please restart the app.');

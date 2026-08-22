@@ -1,7 +1,7 @@
 import { getDatabase } from './database';
 
 // Bump this and add a new migrateToVN() step whenever the schema changes.
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
  * Creates tables if they don't exist and applies any pending migrations,
@@ -23,6 +23,10 @@ export async function runMigrations() {
 
   if (currentVersion < 2) {
     await migrateToV2(db);
+  }
+
+  if (currentVersion < 3) {
+    await migrateToV3(db);
   }
 }
 
@@ -75,5 +79,18 @@ async function migrateToV2(db) {
     );
 
     PRAGMA user_version = 2;
+  `);
+}
+
+// Adds photo_path: the on-device path to a single GPS-stamped photo attached
+// to an entry (nullable — most entries have no photo). One photo per entry
+// max; there's no separate photos table because the relationship is that
+// simple. ALTER TABLE ADD COLUMN is safe here because this only ever runs
+// once per device (guarded by the user_version check above).
+async function migrateToV3(db) {
+  await db.execAsync(`
+    ALTER TABLE diary_entries ADD COLUMN photo_path TEXT;
+
+    PRAGMA user_version = 3;
   `);
 }

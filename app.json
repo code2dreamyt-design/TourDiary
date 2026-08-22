@@ -2,7 +2,7 @@
   "expo": {
     "name": "TourDiary",
     "slug": "TourDiary",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,10 +22,28 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "071090d4-f8d1-4b20-b7a2-49cedde540a1"
-      }
-    }
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TourDiary needs camera access to take GPS-stamped tour photos.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "TourDiary needs your location to stamp photos with GPS coordinates."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "TourDiary needs access to your photos to save pictures you take.",
+          "savePhotosPermission": "TourDiary needs permission to save photos to your gallery.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ]
+    ]
   }
 }

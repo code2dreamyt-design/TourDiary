@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -98,9 +99,11 @@ export default function ProfileSetupScreen({ navigation, route }) {
         defaultFromLocation,
       });
       if (mode === 'setup') {
-        navigation.replace('Home');
+        navigation.replace('MainTabs');
       } else {
-        navigation.goBack();
+        // Reached via the Profile tab directly (not pushed), so there's
+        // nothing to "go back" to — just confirm and stay put.
+        Alert.alert('Saved', 'Your profile has been updated.');
       }
     } catch (err) {
       setError(err.message || 'Unable to save your profile. Please try again.');

@@ -1,0 +1,1 @@
+module.exports = { requestPermissionsAsync: async () => ({status:"granted"}), saveToLibraryAsync: async () => {} };

@@ -113,9 +113,20 @@ export default function MyDiariesScreen({ navigation }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={toggleSelectMode} accessibilityRole="button" style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>{selectMode ? 'Cancel' : 'Select'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          {!selectMode && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CreateDiary')}
+              accessibilityRole="button"
+              style={styles.headerButton}
+            >
+              <Text style={styles.headerButtonText}>+ New</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={toggleSelectMode} accessibilityRole="button" style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>{selectMode ? 'Cancel' : 'Select'}</Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, selectMode]);
@@ -271,6 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteButtonText: { color: COLORS.danger, fontWeight: '700' },
+  headerRow: { flexDirection: 'row' },
   headerButton: { paddingHorizontal: SPACING.md, minHeight: TOUCH_TARGET_MIN, justifyContent: 'center' },
   headerButtonText: { color: COLORS.white, fontWeight: '700', fontSize: FONT_SIZE.base },
   selectionBar: {
