@@ -23,7 +23,7 @@ export default function CameraCaptureScreen({ navigation }) {
   const [now, setNow] = useState(new Date());
   const [capturing, setCapturing] = useState(false);
   const [pictureSize, setPictureSize] = useState(null); // "1920x1080" — chosen once, from the device's own supported sizes
-  const [previewRatio, setPreviewRatio] = useState(3 / 4); // matches pictureSize once known, so preview framing == actual capture
+  const [previewRatio, setPreviewRatio] = useState(9 / 16); // matches pictureSize once known, so preview framing == actual capture
 
   const cameraRef = useRef(null);
   const locationSubRef = useRef(null);
@@ -38,40 +38,49 @@ export default function CameraCaptureScreen({ navigation }) {
     }
   }, [requestCameraPermission]);
 
-  // Picks the device's largest supported photo size once the camera is
-  // ready, and makes the on-screen preview match that exact ratio — so
-  // what's framed on screen is exactly what ends up in the saved photo,
-  // instead of the preview being stretched to fill the whole (differently
-  // shaped) device screen while the capture uses some other default ratio.
+  // Picks the device's supported photo size closest to 16:9 (a "full
+  // screen" wide ratio, not the boxed-in 4:3 a plain "largest available"
+  // pick often lands on), and makes the on-screen preview match that exact
+  // ratio — so what's framed on screen is exactly what ends up in the saved
+  // photo. Falls back to the largest available size if nothing close to
+  // 16:9 exists, rather than breaking on devices with limited options.
   async function handleCameraReady() {
     if (sizePickedRef.current || !cameraRef.current) return;
     sizePickedRef.current = true;
     try {
       const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
       if (!sizes || sizes.length === 0) return; // fall back to default behavior
-      let best = null;
-      let bestArea = 0;
+
+      const TARGET_RATIO = 16 / 9;
+      const candidates = [];
       for (const s of sizes) {
         const [wStr, hStr] = s.split('x');
         const w = parseInt(wStr, 10);
         const h = parseInt(hStr, 10);
         if (!w || !h) continue;
-        const area = w * h;
-        if (area > bestArea) {
-          bestArea = area;
-          best = { size: s, w, h };
-        }
+        const long = Math.max(w, h);
+        const short = Math.min(w, h);
+        candidates.push({ size: s, w, h, ratio: long / short, area: w * h });
       }
-      if (best) {
-        setPictureSize(best.size);
-        // Sizes are reported in the sensor's natural (landscape) orientation —
-        // display the preview in portrait proportions (matching how the phone
-        // is actually held), i.e. the smaller dimension over the larger one.
-        setPreviewRatio(Math.min(best.w, best.h) / Math.max(best.w, best.h));
-      }
+      if (candidates.length === 0) return;
+
+      // Closest to 16:9 wins; ties (same ratio family) broken by largest resolution.
+      candidates.sort((a, b) => {
+        const diffA = Math.abs(a.ratio - TARGET_RATIO);
+        const diffB = Math.abs(b.ratio - TARGET_RATIO);
+        if (Math.abs(diffA - diffB) > 0.01) return diffA - diffB;
+        return b.area - a.area;
+      });
+      const best = candidates[0];
+
+      setPictureSize(best.size);
+      // Sizes are reported in the sensor's natural (landscape) orientation —
+      // display the preview in portrait proportions (matching how the phone
+      // is actually held), i.e. the smaller dimension over the larger one.
+      setPreviewRatio(Math.min(best.w, best.h) / Math.max(best.w, best.h));
     } catch (e) {
       // Some devices/emulators don't support this — preview just keeps the
-      // default 3:4 ratio rather than breaking.
+      // default 9:16 ratio rather than breaking.
     }
   }
 

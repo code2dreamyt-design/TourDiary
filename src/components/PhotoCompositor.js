@@ -60,16 +60,18 @@ const PhotoCompositor = forwardRef((props, ref) => {
   const positionStyle = BOX_POSITION_STYLES[box.position] || BOX_POSITION_STYLES['bottom-left'];
 
   return (
-    // Clipped into a 1x1 box (not flung to an extreme off-screen coordinate)
-    // — react-native-view-shot captures the ViewShot's own rendered bitmap at
-    // its full styled size regardless of this clipping, so the output image
-    // is unaffected, but rendering stays within normal on-screen bounds.
-    // Positioning content extremely far off-screen (e.g. top/left: -100000)
-    // can cause some Android GPUs to rasterize it with a dark/washed-out
-    // tint instead of rendering it cleanly — this avoids that entirely.
+    // Off-screen at an extreme negative offset (proven working: a reference
+    // build using this exact technique did not exhibit the black-tint bug).
+    // The two things that actually matter for Android reliability are:
+    //   1. collapsable={false} on the captured view — without it, Android
+    //      can "flatten" (optimize away) the view during native layout, so
+    //      react-native-view-shot ends up capturing the wrong/empty layer.
+    //   2. An explicit opaque backgroundColor — JPG has no alpha channel,
+    //      so any transparent pixels in the captured surface (e.g. from
+    //      timing/flattening) can otherwise resolve to black.
     <View style={styles.offscreenContainer} pointerEvents="none">
       <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.92 }} style={{ width, height }}>
-        <View style={{ width, height }}>
+        <View collapsable={false} style={{ width, height, backgroundColor: '#000' }}>
           <Image
             source={{ uri: imageUri }}
             style={{ width, height }}
@@ -94,11 +96,8 @@ export default PhotoCompositor;
 const styles = StyleSheet.create({
   offscreenContainer: {
     position: 'absolute',
-    top: 0,
+    top: -100000,
     left: 0,
-    width: 1,
-    height: 1,
-    overflow: 'hidden',
   },
   box: {
     position: 'absolute',
