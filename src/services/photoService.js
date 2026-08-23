@@ -4,6 +4,7 @@
 import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 
 // --- Accuracy color thresholds (per spec) ---------------------------------
 // < 11m = green, 11-69m = yellow, >= 70m = red.
@@ -187,6 +188,45 @@ export async function saveToDeviceGallery(localUri) {
   const asset = await MediaLibrary.createAssetAsync(localUri);
   await deleteFileIfExists(localUri);
   return asset.uri;
+}
+
+/**
+ * Returns the uri of the most recently added photo in the device's public
+ * Gallery, or null if there isn't one / the media-library permission isn't
+ * granted / the lookup fails for any reason. Powers the camera screen's
+ * "last photo" thumbnail — mirrors what a stock camera app shows (the most
+ * recent photo in the gallery generally, not only ones taken via this app).
+ * Never throws.
+ */
+export async function getMostRecentGalleryPhoto() {
+  try {
+    const result = await MediaLibrary.getAssetsAsync({
+      mediaType: MediaLibrary.MediaType.photo,
+      sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+      first: 1,
+    });
+    return result && result.assets && result.assets.length > 0 ? result.assets[0].uri : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Hands a photo off to the device's native "view/share" sheet — the same
+ * app-chooser mechanism other camera apps use to let the user open a just-
+ * taken photo in a Photos/Gallery viewer. Never throws; screens don't need
+ * a try/catch around this.
+ */
+export async function openInViewer(uri) {
+  if (!uri) return;
+  try {
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) return;
+    await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: 'View Photo' });
+  } catch (e) {
+    // Best-effort — nothing meaningful to recover from if the viewer sheet
+    // itself fails to open.
+  }
 }
 
 // --- Compositing orchestration ------------------------------------------

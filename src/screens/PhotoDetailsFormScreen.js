@@ -104,6 +104,15 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
     navigation.goBack();
   }
 
+  function handleRetake() {
+    if (saving) return;
+    // The existing beforeRemove listener (registered above) cleans up
+    // currentUriRef.current since confirmedRef.current is still false —
+    // same safe, idempotent cleanup path as backing out with the hardware
+    // back button, just via an explicit, discoverable button.
+    navigation.goBack();
+  }
+
   async function handleConfirm() {
     if (saving) return;
     setSaving(true);
@@ -222,14 +231,25 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
         multiline
       />
 
-      <TouchableOpacity
-        style={[styles.confirmButton, saving && styles.confirmButtonDisabled]}
-        onPress={handleConfirm}
-        disabled={saving}
-        accessibilityRole="button"
-      >
-        {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.confirmButtonText}>Confirm</Text>}
-      </TouchableOpacity>
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[styles.retakeButton, saving && styles.retakeButtonDisabled]}
+          onPress={handleRetake}
+          disabled={saving}
+          accessibilityRole="button"
+        >
+          <Text style={styles.retakeButtonText}>Retake</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.confirmButton, saving && styles.confirmButtonDisabled]}
+          onPress={handleConfirm}
+          disabled={saving}
+          accessibilityRole="button"
+        >
+          {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.confirmButtonText}>Confirm</Text>}
+        </TouchableOpacity>
+      </View>
 
       <PhotoCompositor ref={compositorRef} />
     </ScrollView>
@@ -276,9 +296,26 @@ const styles = StyleSheet.create({
     minHeight: TOUCH_TARGET_MIN,
   },
   noteInput: { minHeight: 80, textAlignVertical: 'top' },
-  confirmButton: {
+  actionRow: {
+    flexDirection: 'row',
     marginTop: SPACING.xl,
     marginBottom: SPACING.xl,
+    gap: SPACING.md,
+  },
+  retakeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    minHeight: TOUCH_TARGET_MIN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retakeButtonDisabled: { opacity: 0.6 },
+  retakeButtonText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: FONT_SIZE.base },
+  confirmButton: {
+    flex: 1,
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     minHeight: TOUCH_TARGET_MIN,

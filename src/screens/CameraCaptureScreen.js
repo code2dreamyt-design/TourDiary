@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ export default function CameraCaptureScreen({ navigation }) {
   const [capturing, setCapturing] = useState(false);
   const [pictureSize, setPictureSize] = useState(null); // "1920x1080" — chosen once, from the device's own supported sizes
   const [previewRatio, setPreviewRatio] = useState(9 / 16); // matches pictureSize once known, so preview framing == actual capture
+  const [lastPhotoUri, setLastPhotoUri] = useState(null); // most recent Gallery photo, shown as a thumbnail like a stock camera app
 
   const cameraRef = useRef(null);
   const locationSubRef = useRef(null);
@@ -35,6 +36,12 @@ export default function CameraCaptureScreen({ navigation }) {
     setPermissionsChecked(true);
     if (result.camera && result.location) {
       locationSubRef.current = await photoService.watchLocation(setLocation);
+    }
+    if (result.mediaLibrary) {
+      const uri = await photoService.getMostRecentGalleryPhoto();
+      setLastPhotoUri(uri);
+    } else {
+      setLastPhotoUri(null);
     }
   }, [requestCameraPermission]);
 
@@ -97,6 +104,11 @@ export default function CameraCaptureScreen({ navigation }) {
       };
     }, [setupPermissionsAndWatch])
   );
+
+  async function handleViewLastPhoto() {
+    if (!lastPhotoUri) return;
+    await photoService.openInViewer(lastPhotoUri);
+  }
 
   async function handleCapture() {
     if (!cameraRef.current || !location || capturing) return;
@@ -194,6 +206,17 @@ export default function CameraCaptureScreen({ navigation }) {
         )}
       </View>
 
+      {lastPhotoUri && (
+        <TouchableOpacity
+          style={styles.thumbnailButton}
+          onPress={handleViewLastPhoto}
+          accessibilityRole="button"
+          accessibilityLabel="View last photo"
+        >
+          <Image source={{ uri: lastPhotoUri }} style={styles.thumbnailImage} resizeMode="cover" />
+        </TouchableOpacity>
+      )}
+
       <View style={styles.shutterRow}>
         <TouchableOpacity
           style={[styles.shutterButton, (!location || capturing) && styles.shutterButtonDisabled]}
@@ -273,6 +296,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+  },
+  thumbnailButton: {
+    position: 'absolute',
+    bottom: SPACING.xxl + 6,
+    left: SPACING.lg,
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
   },
   shutterButton: {
     width: 72,
