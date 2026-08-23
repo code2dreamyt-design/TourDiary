@@ -43,6 +43,13 @@ const PhotoCompositor = forwardRef((props, ref) => {
   async function handleImageLoad() {
     if (!job || !viewShotRef.current) return;
     try {
+      // onLoad only means the image finished DECODING — it does not
+      // guarantee Android has actually PAINTED that pixel data into the
+      // view's buffer yet. Capturing in that gap is a known cause of
+      // black/blank results with this library on Android. A short pause
+      // here guarantees at least one full render/paint cycle has completed
+      // before we snapshot.
+      await new Promise((res) => setTimeout(res, 150));
       const uri = await viewShotRef.current.capture();
       const { resolve } = job;
       setJob(null);
@@ -60,15 +67,12 @@ const PhotoCompositor = forwardRef((props, ref) => {
   const positionStyle = BOX_POSITION_STYLES[box.position] || BOX_POSITION_STYLES['bottom-left'];
 
   return (
-    // Off-screen at an extreme negative offset (proven working: a reference
-    // build using this exact technique did not exhibit the black-tint bug).
-    // The two things that actually matter for Android reliability are:
-    //   1. collapsable={false} on the captured view — without it, Android
-    //      can "flatten" (optimize away) the view during native layout, so
-    //      react-native-view-shot ends up capturing the wrong/empty layer.
-    //   2. An explicit opaque backgroundColor — JPG has no alpha channel,
-    //      so any transparent pixels in the captured surface (e.g. from
-    //      timing/flattening) can otherwise resolve to black.
+    // Off-screen at an extreme negative offset — proven fine on its own (a
+    // reference build using this exact position also had no issue with it).
+    // <ViewShot> already sets collapsable={false} on its own root internally
+    // (confirmed by reading the library source), so that was never actually
+    // missing. The real fix is the paint-delay in handleImageLoad above —
+    // capturing must wait for an actual paint, not just image decode.
     <View style={styles.offscreenContainer} pointerEvents="none">
       <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.92 }} style={{ width, height }}>
         <View collapsable={false} style={{ width, height, backgroundColor: '#000' }}>
