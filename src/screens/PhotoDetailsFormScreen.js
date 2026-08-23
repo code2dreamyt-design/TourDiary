@@ -40,9 +40,9 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
   const loadContext = useCallback(async () => {
     setLoadingContext(true);
     try {
-      const { entry } = await diaryService.getTodayEntryContext();
+      const { entry, defaultFromLocation } = await diaryService.getTodayEntryContext();
       setTodayEntry(entry);
-      setFromLocation((entry && entry.from_location) || '');
+      setFromLocation(diaryService.resolveFromLocation(entry, defaultFromLocation));
     } catch (e) {
       // Non-fatal — form still works, From just won't be prefilled.
     } finally {

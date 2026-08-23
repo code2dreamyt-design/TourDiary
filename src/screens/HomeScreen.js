@@ -15,6 +15,7 @@ export default function HomeScreen({ navigation }) {
   const [diary, setDiary] = useState(null);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [todayEntry, setTodayEntry] = useState(null);
+  const [defaultFromLocation, setDefaultFromLocation] = useState(''); // read fresh from the profile every load — never stale
   const [editing, setEditing] = useState(false); // false = read-only "completed" view; true = the fill/edit form
 
   const [fromLocation, setFromLocation] = useState('');
@@ -23,8 +24,8 @@ export default function HomeScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  function resetFormFrom(entry) {
-    setFromLocation((entry && entry.from_location) || '');
+  function resetFormFrom(entry, defaultFrom) {
+    setFromLocation(diaryService.resolveFromLocation(entry, defaultFrom));
     setToLocation((entry && entry.to_location) || '');
     setRemarks((entry && entry.remarks) || '');
   }
@@ -33,12 +34,13 @@ export default function HomeScreen({ navigation }) {
     setLoading(true);
     setError(null);
     try {
-      const { diary: d, entry } = await diaryService.getTodayEntryContext();
+      const { diary: d, entry, defaultFromLocation: currentDefault } = await diaryService.getTodayEntryContext();
       const p = await diaryService.getDiaryProgress(d.id);
       setDiary(d);
       setProgress(p);
       setTodayEntry(entry);
-      resetFormFrom(entry);
+      setDefaultFromLocation(currentDefault);
+      resetFormFrom(entry, currentDefault);
       // A freshly-empty day opens straight into the fill form (no extra tap
       // needed); an already-completed day opens as a read-only summary with
       // an Edit button, rather than showing raw inputs by default.
@@ -57,13 +59,13 @@ export default function HomeScreen({ navigation }) {
   );
 
   function handleStartEdit() {
-    resetFormFrom(todayEntry);
+    resetFormFrom(todayEntry, defaultFromLocation);
     setSaveError(null);
     setEditing(true);
   }
 
   function handleCancelEdit() {
-    resetFormFrom(todayEntry);
+    resetFormFrom(todayEntry, defaultFromLocation);
     setSaveError(null);
     setEditing(false);
   }

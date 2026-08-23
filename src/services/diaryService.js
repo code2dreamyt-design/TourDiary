@@ -35,8 +35,6 @@ export async function createDiary(month, year) {
   const db = await getDatabase();
   const timestamp = nowIso();
   const daysInMonth = getDaysInMonth(month, year);
-  const profile = await profileRepo.getProfileRow();
-  const defaultFromLocation = profile && profile.default_from_location ? profile.default_from_location : '';
 
   let diaryId;
   try {
@@ -44,7 +42,14 @@ export async function createDiary(month, year) {
       diaryId = await diaryRepo.insertDiary(month, year, timestamp);
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = buildDateString(year, month, day);
-        await entryRepo.insertEmptyEntry(diaryId, day, dateStr, timestamp, defaultFromLocation);
+        // from_location is left EMPTY here on purpose — it is NOT baked in
+        // from the profile's current default at creation time. Baking it in
+        // would freeze that value forever, even for entries the user never
+        // touches, so a later change to the profile's default would never
+        // be reflected. Instead, the UI (DiaryDetailsScreen, HomeScreen)
+        // falls back to the CURRENT profile default whenever it opens an
+        // entry with an empty from_location — always live, never stale.
+        await entryRepo.insertEmptyEntry(diaryId, day, dateStr, timestamp);
       }
     });
   } catch (err) {
@@ -81,14 +86,18 @@ export async function getOrCreateCurrentMonthDiary() {
 
 /**
  * Resolves (auto-creating if needed) the current month's diary and returns
- * today's entry row within it, for the Home screen's inline "today" card
- * and the camera's "add to today's entry" flow.
+ * today's entry row within it, plus the profile's CURRENT default From
+ * location — for the Home screen's inline "today" card and the camera's
+ * "add to today's entry" flow. defaultFromLocation is always read fresh
+ * here (never cached/baked in), so a profile change is reflected immediately.
  */
 export async function getTodayEntryContext() {
   const diary = await getOrCreateCurrentMonthDiary();
   const today = getTodayLocalDateString();
   const entry = await entryRepo.findEntryByDiaryIdAndDate(diary.id, today);
-  return { diary, entry };
+  const profile = await profileRepo.getProfileRow();
+  const defaultFromLocation = (profile && profile.default_from_location) || '';
+  return { diary, entry, defaultFromLocation };
 }
 
 /** All diaries, newest month first, each annotated with progress info. */
@@ -204,6 +213,23 @@ export async function getDiaryProgress(diaryId) {
 export async function isDiaryComplete(diaryId) {
   const progress = await getDiaryProgress(diaryId);
   return progress.isComplete;
+}
+
+/**
+ * Resolves what an entry's From field should actually show. For an EMPTY
+ * entry (never explicitly saved by the user), whatever's sitting in
+ * from_location is only ever a convenience pre-fill, never real user
+ * data — so the CURRENT profile default always wins here, even overriding
+ * a stale value that got baked in by an older version of this app before
+ * the profile's default was changed. For a COMPLETED entry, from_location
+ * is real, user-confirmed data and is never overridden.
+ */
+export function resolveFromLocation(entry, defaultFromLocation) {
+  if (!entry) return defaultFromLocation || '';
+  if (entry.status === 'EMPTY') {
+    return defaultFromLocation || entry.from_location || '';
+  }
+  return entry.from_location || '';
 }
 
 /**

@@ -75,7 +75,7 @@ export default function DiaryDetailsScreen({ route, navigation }) {
     setEditingEntryId(entry.id);
     setSaveError(null);
     setDraft({
-      fromLocation: entry.from_location || defaultFromLocation || '',
+      fromLocation: diaryService.resolveFromLocation(entry, defaultFromLocation),
       toLocation: entry.to_location || '',
       remarks: entry.remarks || '',
     });
