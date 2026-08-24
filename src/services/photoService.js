@@ -237,15 +237,7 @@ export async function openInViewer(uri) {
   if (!uri) return;
   try {
     if (Platform.OS === 'android') {
-      // MediaLibrary asset URIs are already `content://...` on Android —
-      // only file:// paths (e.g. straight out of the camera, before being
-      // saved to the library) need converting via the FileProvider.
-      // Calling getContentUriAsync on an already-content:// URI throws,
-      // which is what was silently sending this into the share-sheet
-      // fallback below instead of opening the gallery viewer.
-      const contentUri = uri.startsWith('content://')
-        ? uri
-        : await FileSystem.getContentUriAsync(uri);
+      const contentUri = await FileSystem.getContentUriAsync(uri);
       await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
         data: contentUri,
         flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
