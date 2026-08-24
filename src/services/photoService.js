@@ -1,12 +1,10 @@
 // All camera/location/GPS-stamping logic lives here — screens only call
 // these functions and render UI; they never touch expo-camera/expo-location/
 // expo-media-library or file paths directly.
-import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import * as IntentLauncher from 'expo-intent-launcher';
 
 // --- Accuracy color thresholds (per spec) ---------------------------------
 // < 11m = green, 11-69m = yellow, >= 70m = red.
@@ -214,51 +212,30 @@ export async function getMostRecentGalleryPhoto() {
 }
 
 /**
- * Opens a photo in the device's own Gallery/Photos viewer — the same
- * behavior other camera apps use for their "last photo" thumbnail. This is
- * a real "view" hand-off, not a share: no "send to..." chooser, no picking
- * an app to send the file to.
+ * Hands a photo off to the device's native "view/share" sheet — the same
+ * app-chooser mechanism other camera apps use to let the user open a just-
+ * taken photo in a Photos/Gallery viewer. Never throws; screens don't need
+ * a try/catch around this.
  *
- * On Android, this fires a genuine ACTION_VIEW intent (via
- * expo-intent-launcher) at a content:// URI, which opens directly in
- * whatever the user's default photo viewer is (Gallery, Google Photos,
- * etc.) — mirroring what a stock camera app does. If that fails for any
- * reason (older device quirks, no viewer registered, etc.) it falls back
- * to the share sheet so the user still has *some* way to see the photo.
- *
- * On iOS there's no public API for a third-party app to open the Photos
- * app to a specific image, so this uses the share sheet, which on iOS
- * shows a full preview of the photo itself before any app/action is
- * chosen.
- *
- * Never throws; screens don't need a try/catch around this.
+ * (A previous version of this tried to fire a raw Android ACTION_VIEW
+ * intent directly at the gallery via expo-intent-launcher, converting the
+ * photo's file:// path to a content:// URI with FileSystem.getContentUriAsync
+ * first. That conversion always failed for a real Gallery photo — the
+ * photo lives in the public DCIM/Pictures folder, but expo-file-system's
+ * permission check for getContentUriAsync only recognizes the app's own
+ * sandboxed folders, so it threw on every call and silently fell back to
+ * this same share sheet anyway, just with an extra broken step and an
+ * unnecessary native dependency in front of it.)
  */
 export async function openInViewer(uri) {
   if (!uri) return;
   try {
-    if (Platform.OS === 'android') {
-      const contentUri = await FileSystem.getContentUriAsync(uri);
-      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-        data: contentUri,
-        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-        type: 'image/*',
-      });
-      return;
-    }
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) return;
     await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: 'View Photo' });
   } catch (e) {
-    // Fall back to the share sheet if the native viewer intent couldn't be
-    // launched — still better than leaving the user stuck with nothing.
-    try {
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: 'View Photo' });
-      }
-    } catch (e2) {
-      // Truly nothing left to recover from.
-    }
+    // Best-effort — nothing meaningful to recover from if the viewer sheet
+    // itself fails to open.
   }
 }
 
