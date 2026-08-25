@@ -20,7 +20,11 @@ export default function MainTabNavigator() {
       <Tab.Screen
         name="Camera"
         component={CameraCaptureScreen}
-        options={{ headerShown: false }}
+        // Same white-container gap as the Stack's contentStyle fix (see
+        // AppNavigator) but for the tab-switch container underneath the
+        // Camera scene specifically — only this tab needs it since Home /
+        // MyDiaries / Profile all use the app's light background.
+        options={{ headerShown: false, sceneStyle: { backgroundColor: '#000' } }}
       />
       <Tab.Screen
         name="Profile"

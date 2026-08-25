@@ -3,6 +3,7 @@ import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
+import ToastHost from './src/components/Toast';
 import { runMigrations } from './src/database/migrations';
 import * as profileService from './src/services/profileService';
 import { COLORS } from './src/constants/colors';
@@ -45,6 +46,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <AppNavigator initialRouteName={initialRoute} />
+      <ToastHost />
     </SafeAreaProvider>
   );
 }

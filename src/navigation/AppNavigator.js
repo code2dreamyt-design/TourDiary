@@ -19,7 +19,17 @@ export default function AppNavigator({ initialRouteName = 'MainTabs' }) {
           headerTitleStyle: { fontWeight: '700' },
         }}
       >
-        <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="MainTabs"
+          component={MainTabNavigator}
+          // Without this, the Stack's transition container defaults to
+          // white. The Camera tab paints its own black background, but
+          // only *after* it renders — so on the pop transition back from
+          // PhotoDetailsForm (a light screen), this white container is
+          // what's actually visible for a frame or two first, showing up
+          // as a rapid white blink. Black here removes that gap.
+          options={{ headerShown: false, contentStyle: { backgroundColor: '#000' } }}
+        />
         <Stack.Screen
           name="ProfileSetup"
           component={ProfileSetupScreen}

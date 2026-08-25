@@ -87,7 +87,7 @@ export default function EntryPhotoState({ photoPath }) {
         >
           <Image source={{ uri: photoPath }} style={styles.photo} resizeMode="contain" />
           <View style={styles.zoomHintBadge}>
-            <Text style={styles.zoomHintText}>Tap to zoom</Text>
+            <Text style={styles.zoomHintText}></Text>
           </View>
         </TouchableOpacity>
       )}

@@ -14,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as diaryService from '../services/diaryService';
 import * as photoService from '../services/photoService';
 import PhotoCompositor from '../components/PhotoCompositor';
+import { showToast } from '../components/Toast';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 
@@ -80,10 +81,10 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
 
   async function saveAsGalleryOnly() {
     const finalUri = await finalizeImage();
-    await photoService.saveToDeviceGallery(finalUri);
+    const galleryAsset = await photoService.saveToDeviceGallery(finalUri);
     confirmedRef.current = true;
-    Alert.alert('Saved', 'Photo saved to your gallery.');
-    navigation.goBack();
+    showToast('Photo saved to your gallery.');
+    goBackToCameraWithNewPhoto(galleryAsset);
   }
 
   async function saveAttachedToEntry() {
@@ -92,16 +93,30 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
     // remembers its path. No separate private app-storage copy, and we
     // never delete the old gallery photo on Replace: the user has full
     // control over their Gallery, the app only ever adds to it.
-    const galleryPath = await photoService.saveToDeviceGallery(finalUri);
+    const galleryAsset = await photoService.saveToDeviceGallery(finalUri);
     await diaryService.saveEntryWithPhoto(todayEntry.id, {
       fromLocation,
       toLocation,
       remarks: note,
-      photoPath: galleryPath,
+      photoPath: galleryAsset.uri,
     });
     confirmedRef.current = true;
-    Alert.alert('Saved', "Photo attached to today's diary entry.");
-    navigation.goBack();
+    showToast("Photo attached to today's diary entry.");
+    goBackToCameraWithNewPhoto(galleryAsset);
+  }
+
+  // Returning via a plain navigation.goBack() left the Camera screen to
+  // requery the gallery for its "last photo" thumbnail on focus — which on
+  // some devices doesn't reliably reflect an asset that was JUST created
+  // (MediaStore indexing/sort quirks), so the thumbnail kept showing an
+  // older photo, sometimes even after a full app restart. Since we already
+  // know exactly which asset we just saved, hand it back directly instead
+  // of trusting a fresh query to find it again.
+  function goBackToCameraWithNewPhoto(galleryAsset) {
+    navigation.navigate('MainTabs', {
+      screen: 'Camera',
+      params: { justSavedPhoto: { uri: galleryAsset.uri, id: galleryAsset.id } },
+    });
   }
 
   function handleRetake() {

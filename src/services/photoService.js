@@ -182,14 +182,16 @@ export async function fileExists(uri) {
  * private app-storage copy: whether a photo is attached to a diary entry or
  * not, it lives in the Gallery, and the app just remembers the path when
  * it's attached to an entry. Deletes the disposable cache copy afterward.
- * Returns the Gallery asset's path, suitable for both <Image> display and
- * fileExists() checks (on Android this is a real file:// path into the
- * device's MediaStore).
+ * Returns { uri, id } for the new Gallery asset — uri is suitable for both
+ * <Image> display and fileExists() checks (on Android this is a real
+ * file:// path into the device's MediaStore); id is the MediaStore numeric
+ * id, needed by openInViewer to open the photo in the real Gallery app
+ * (see openInViewer's comment for why).
  */
 export async function saveToDeviceGallery(localUri) {
   const asset = await MediaLibrary.createAssetAsync(localUri);
   await deleteFileIfExists(localUri);
-  return asset.uri;
+  return { uri: asset.uri, id: asset.id };
 }
 
 /**
@@ -199,15 +201,42 @@ export async function saveToDeviceGallery(localUri) {
  * "last photo" thumbnail — mirrors what a stock camera app shows (the most
  * recent photo in the gallery generally, not only ones taken via this app).
  * Never throws.
+ *
+ * ROOT CAUSE of the thumbnail getting "stuck" on an old (non-TourDiary)
+ * photo, including after a fresh app restart: this used to sort by
+ * `SortBy.creationTime`, which on Android maps directly to the MediaStore
+ * `DATE_TAKEN` column (confirmed by reading expo-media-library's own
+ * Android source — see SortBy.CREATION_TIME in MediaLibraryEnums.kt) and
+ * on iOS to `PHAsset.creationDate`. That column is populated from the
+ * image file's own EXIF "date taken" metadata. Our own photos are final
+ * composites produced by react-native-view-shot (a fresh render/snapshot,
+ * not a straight sensor capture), so they carry no reliable EXIF
+ * DateTimeOriginal — the OS is then free to leave DATE_TAKEN stale/blank,
+ * which can sort a just-captured TourDiary photo *behind* a genuinely
+ * older photo that has proper camera EXIF data (e.g. one from the phone's
+ * default Camera app). The in-session `justSavedPhoto` hand-off (see
+ * CameraCaptureScreen) papers over this right after a capture, but any
+ * fresh query — including the very first load after an app restart —
+ * still hit this and landed on the wrong photo.
+ *
+ * The fix: sort by `SortBy.default` instead, which maps to the MediaStore
+ * row `_ID` (Android) / the platform's natural fetch order (iOS) — true
+ * insertion order, independent of any EXIF metadata the file may or may
+ * not carry, so it reliably reflects whatever was added most recently.
  */
 export async function getMostRecentGalleryPhoto() {
   try {
     const result = await MediaLibrary.getAssetsAsync({
       mediaType: MediaLibrary.MediaType.photo,
-      sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+      sortBy: [[MediaLibrary.SortBy.default, false]],
       first: 1,
     });
-    return result && result.assets && result.assets.length > 0 ? result.assets[0].uri : null;
+    if (!result || !result.assets || result.assets.length === 0) return null;
+    const asset = result.assets[0];
+    // Return both the uri (for <Image> display/fileExists checks) and the
+    // MediaStore numeric id (needed by openInViewer to build a real
+    // content:// URI — see that function for why the uri alone isn't enough).
+    return { uri: asset.uri, id: asset.id };
   } catch (e) {
     return null;
   }
@@ -219,12 +248,35 @@ export async function getMostRecentGalleryPhoto() {
  * a real "view" hand-off, not a share: no "send to..." chooser, no picking
  * an app to send the file to.
  *
+ * `mediaId` is the MediaLibrary asset's numeric id (from
+ * getMostRecentGalleryPhoto's returned { uri, id }) and is the key to this
+ * actually working — see below.
+ *
+ * ROOT CAUSE this works around: on Android, expo-media-library returns
+ * asset.uri as a raw `file://` path straight into the device's *public*
+ * gallery storage (built from MediaStore.Images.Media.DATA — confirmed by
+ * reading expo-media-library's own Android source). expo-file-system's
+ * FileProvider (used by getContentUriAsync) only ever exposes the app's
+ * OWN private storage — its file_paths.xml declares just
+ * <files-path>/<cache-path>, nothing public (confirmed via `expo prebuild`
+ * and inspecting the generated native config). So getContentUriAsync()
+ * always threw for a real gallery photo, silently falling into the catch
+ * block below and landing on the share sheet — which is the bug being
+ * fixed here.
+ *
+ * The fix: skip the FileProvider path entirely and build a MediaStore
+ * content:// URI directly from the asset's own id
+ * (content://media/external/images/media/<id>), which is a real, always-
+ * valid handle to a public gallery image regardless of where its
+ * underlying file lives.
+ *
  * On Android, this fires a genuine ACTION_VIEW intent (via
- * expo-intent-launcher) at a content:// URI, which opens directly in
+ * expo-intent-launcher) at that content:// URI, which opens directly in
  * whatever the user's default photo viewer is (Gallery, Google Photos,
- * etc.) — mirroring what a stock camera app does. If that fails for any
- * reason (older device quirks, no viewer registered, etc.) it falls back
- * to the share sheet so the user still has *some* way to see the photo.
+ * etc.) — mirroring what a stock camera app does. If mediaId isn't
+ * available for some reason, or the intent still fails (older device
+ * quirks, no viewer registered, etc.), it falls back to the share sheet so
+ * the user still has *some* way to see the photo.
  *
  * On iOS there's no public API for a third-party app to open the Photos
  * app to a specific image, so this uses the share sheet, which on iOS
@@ -233,11 +285,13 @@ export async function getMostRecentGalleryPhoto() {
  *
  * Never throws; screens don't need a try/catch around this.
  */
-export async function openInViewer(uri) {
+export async function openInViewer(uri, mediaId) {
   if (!uri) return;
   try {
     if (Platform.OS === 'android') {
-      const contentUri = await FileSystem.getContentUriAsync(uri);
+      const contentUri = mediaId
+        ? `content://media/external/images/media/${mediaId}`
+        : await FileSystem.getContentUriAsync(uri); // last-resort path if no id was passed
       await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
         data: contentUri,
         flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
