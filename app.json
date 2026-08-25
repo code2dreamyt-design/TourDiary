@@ -13,7 +13,7 @@
     "android": {
       "package": "com.vikasjusta.tourdiary",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1F4422",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -47,6 +47,7 @@
           "locationWhenInUsePermission": "TourDiary needs your location to stamp photos with GPS coordinates."
         }
       ],
+      ["expo-splash-screen", { "backgroundColor": "#1F4422", "image": "./assets/splash-icon.png", "imageWidth": 200 }],
       [
         "expo-media-library",
         {
