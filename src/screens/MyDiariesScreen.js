@@ -76,7 +76,11 @@ export default function MyDiariesScreen({ navigation }) {
               await diaryService.deleteDiary(item.id);
               await load();
             } catch (e) {
-              Alert.alert('Delete Failed', 'Unable to delete this diary. Please try again.');
+              if (e.code === 'WRITE_LOCKED') {
+                Alert.alert('Subscription Required', e.message);
+              } else {
+                Alert.alert('Delete Failed', 'Unable to delete this diary. Please try again.');
+              }
             }
           },
         },
@@ -102,7 +106,11 @@ export default function MyDiariesScreen({ navigation }) {
               setSelectedIds([]);
               await load();
             } catch (e) {
-              Alert.alert('Delete Failed', 'Unable to delete the selected diaries. Please try again.');
+              if (e.code === 'WRITE_LOCKED') {
+                Alert.alert('Subscription Required', e.message);
+              } else {
+                Alert.alert('Delete Failed', 'Unable to delete the selected diaries. Please try again.');
+              }
             }
           },
         },

@@ -1,9 +1,10 @@
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as diaryService from '../services/diaryService';
-import * as profileService from '../services/profileService';
 import { exportDiaryToWord } from '../services/exportService';
+import { useAuth } from '../context/AuthContext';
+import * as secureStorage from '../storage/secureStorage';
 import DiaryEntryCard from '../components/DiaryEntryCard';
 import NavigationControls from '../components/NavigationControls';
 import ProgressBar from '../components/ProgressBar';
@@ -16,12 +17,13 @@ const PAGE_SIZE = 3;
 
 export default function DiaryDetailsScreen({ route, navigation }) {
   const { diaryId } = route.params;
+  const { user, subscriptionActive } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [diary, setDiary] = useState(null);
   const [entries, setEntries] = useState([]);
-  const [defaultFromLocation, setDefaultFromLocation] = useState('');
+  const [salutation, setSalutation] = useState('Mr.');
   const [page, setPage] = useState(0);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [draft, setDraft] = useState({ fromLocation: '', toLocation: '', remarks: '' });
@@ -30,18 +32,19 @@ export default function DiaryDetailsScreen({ route, navigation }) {
   const [savedFlash, setSavedFlash] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  const defaultFromLocation = user?.usualTourStart || '';
+
+  useEffect(() => {
+    secureStorage.getSalutation().then((s) => s && setSalutation(s));
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [d, e, profile] = await Promise.all([
-        diaryService.getDiaryById(diaryId),
-        diaryService.getDiaryEntries(diaryId),
-        profileService.getProfile(),
-      ]);
+      const [d, e] = await Promise.all([diaryService.getDiaryById(diaryId), diaryService.getDiaryEntries(diaryId)]);
       setDiary(d);
       setEntries(e);
-      setDefaultFromLocation((profile && profile.default_from_location) || '');
     } catch (err) {
       setLoadError('Unable to load this diary. Please go back and try again.');
     } finally {
@@ -67,11 +70,18 @@ export default function DiaryDetailsScreen({ route, navigation }) {
   }, [entries]);
 
   const isEntryEditable = useCallback(
-    (entry) => (diary ? diaryService.isDateEditable(entry.date, diary.month, diary.year) : false),
-    [diary]
+    (entry) => subscriptionActive && (diary ? diaryService.isDateEditable(entry.date, diary.month, diary.year) : false),
+    [diary, subscriptionActive]
   );
 
   function startEdit(entry) {
+    if (!subscriptionActive) {
+      Alert.alert('Subscription Required', 'An active subscription is required to create or edit diary entries.', [
+        { text: 'Not Now', style: 'cancel' },
+        { text: 'Subscribe', onPress: () => navigation.navigate('Subscription') },
+      ]);
+      return;
+    }
     setEditingEntryId(entry.id);
     setSaveError(null);
     setDraft({
@@ -103,6 +113,8 @@ export default function DiaryDetailsScreen({ route, navigation }) {
     } catch (err) {
       if (err.code === 'DATE_LOCKED') {
         setSaveError('This date is locked and cannot be edited.');
+      } else if (err.code === 'WRITE_LOCKED') {
+        setSaveError(err.message);
       } else {
         setSaveError('Unable to save this entry. Please try again.');
       }
@@ -115,11 +127,16 @@ export default function DiaryDetailsScreen({ route, navigation }) {
     if (!diary) return;
     setExporting(true);
     try {
-      const profile = await profileService.getProfile();
+      const profile = { name: user?.name, salutation, designation: user?.designation };
       await exportDiaryToWord({ month: diary.month, year: diary.year, entries, profile });
     } catch (err) {
       if (err.code === 'SHARING_UNAVAILABLE') {
         Alert.alert('File Saved', 'Sharing is not available on this device, but the Word file was saved to app storage.');
+      } else if (err.code === 'WRITE_LOCKED') {
+        Alert.alert('Subscription Required', err.message, [
+          { text: 'Not Now', style: 'cancel' },
+          { text: 'Subscribe', onPress: () => navigation.navigate('Subscription') },
+        ]);
       } else {
         Alert.alert('Export Failed', err.message || 'Unable to generate the Word document. Please try again.');
       }
@@ -143,7 +160,11 @@ export default function DiaryDetailsScreen({ route, navigation }) {
               await diaryService.deleteDiary(diary.id);
               navigation.goBack();
             } catch (err) {
-              Alert.alert('Delete Failed', 'Unable to delete this diary. Please try again.');
+              if (err.code === 'WRITE_LOCKED') {
+                Alert.alert('Subscription Required', err.message);
+              } else {
+                Alert.alert('Delete Failed', 'Unable to delete this diary. Please try again.');
+              }
             }
           },
         },
@@ -191,6 +212,12 @@ export default function DiaryDetailsScreen({ route, navigation }) {
         <View style={styles.flashBanner}>
           <Text style={styles.flashText}>Entry saved successfully</Text>
         </View>
+      )}
+
+      {!subscriptionActive && (
+        <TouchableOpacity style={styles.lockedBanner} onPress={() => navigation.navigate('Subscription')} accessibilityRole="button">
+          <Text style={styles.lockedBannerText}>Subscription inactive — entries are view-only. Tap to subscribe.</Text>
+        </TouchableOpacity>
       )}
 
       <View style={styles.exportBox}>
@@ -309,6 +336,8 @@ const styles = StyleSheet.create({
   errorText: { color: COLORS.danger, marginTop: SPACING.sm, fontSize: FONT_SIZE.base },
   flashBanner: { backgroundColor: COLORS.successBg, borderRadius: RADIUS.md, padding: SPACING.md, marginVertical: SPACING.sm },
   flashText: { color: COLORS.success, fontWeight: '700', textAlign: 'center' },
+  lockedBanner: { backgroundColor: COLORS.lockedBg, borderRadius: RADIUS.md, padding: SPACING.md, marginVertical: SPACING.sm },
+  lockedBannerText: { color: COLORS.locked, fontWeight: '700', textAlign: 'center' },
   exportBox: { marginVertical: SPACING.md },
   primaryButton: {
     backgroundColor: COLORS.primary,

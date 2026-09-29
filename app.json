@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "TourDiary",
+    "name": "Forest App",
     "slug": "TourDiary",
     "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "forestapp",
     "ios": {
       "bundleIdentifier": "com.vikasjusta.tourdiary",
       "supportsTablet": true

@@ -46,7 +46,11 @@ export default function HomeScreen({ navigation }) {
       // an Edit button, rather than showing raw inputs by default.
       setEditing(!entry || entry.status !== 'COMPLETED');
     } catch (e) {
-      setError('Unable to load your current diary. Please try again.');
+      if (e.code === 'WRITE_LOCKED') {
+        setError(e.message);
+      } else {
+        setError('Unable to load your current diary. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

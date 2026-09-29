@@ -173,7 +173,11 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
               try {
                 await saveAttachedToEntry();
               } catch (e) {
-                Alert.alert('Save Failed', 'Unable to save the photo. Please try again.');
+                if (e.code === 'WRITE_LOCKED') {
+                  Alert.alert('Subscription Required', e.message);
+                } else {
+                  Alert.alert('Save Failed', 'Unable to save the photo. Please try again.');
+                }
               } finally {
                 setSaving(false);
               }
@@ -183,7 +187,11 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
       );
       return; // Alert branches handle setSaving(false) themselves.
     } catch (err) {
-      Alert.alert('Save Failed', 'Unable to save the photo. Please try again.');
+      if (err.code === 'WRITE_LOCKED') {
+        Alert.alert('Subscription Required', err.message);
+      } else {
+        Alert.alert('Save Failed', 'Unable to save the photo. Please try again.');
+      }
     }
     setSaving(false);
   }

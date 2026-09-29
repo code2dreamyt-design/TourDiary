@@ -1,3 +1,13 @@
+// DEPRECATED — no longer imported anywhere in the app. Account data (name,
+// designation, DOB, usualTourStart, beat/block/range, profile picture) now
+// lives on the backend and is cached via AuthContext + src/storage/secureStorage.js
+// (see ProfileScreen.js, DesignationSetupScreen.js). The only profile field
+// with no backend equivalent — salutation — is stored directly via
+// secureStorage.getSalutation()/setSalutation() instead of through here.
+// Left in place only so the local `profile` SQLite table isn't orphaned
+// mid-migration-chain; safe to delete along with profileRepository.js and
+// the `profile` table/migration once you're confident no device still has
+// pre-account-system local data worth reading.
 import * as profileRepo from '../repositories/profileRepository';
 import { validateProfile } from '../utils/validation';
 

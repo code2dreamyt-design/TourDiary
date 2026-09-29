@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MonthSelector from '../components/MonthSelector';
 import * as diaryService from '../services/diaryService';
 import { COLORS } from '../constants/colors';
@@ -28,6 +28,11 @@ export default function CreateDiaryScreen({ navigation }) {
     } catch (err) {
       if (err.code === 'DIARY_EXISTS') {
         setConflict({ diaryId: err.diaryId });
+      } else if (err.code === 'WRITE_LOCKED') {
+        Alert.alert('Subscription Required', err.message, [
+          { text: 'Not Now', style: 'cancel' },
+          { text: 'Subscribe', onPress: () => navigation.navigate('Subscription') },
+        ]);
       } else {
         setError('Unable to create this diary. Please try again.');
       }

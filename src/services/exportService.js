@@ -14,6 +14,7 @@ import {
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { formatDisplayDate, getMonthName } from '../utils/dateUtils';
+import { isWriteAllowed } from './entitlementService';
 
 const CELL_BORDER = {
   top: { style: BorderStyle.SINGLE, size: 2, color: '999999' },
@@ -138,6 +139,21 @@ function buildDocumentTitle(profile) {
  * show a plain-language message.
  */
 export async function exportDiaryToWord({ month, year, entries, profile }) {
+  // Exporting takes data OUT of the app's private storage — treated as a
+  // privileged action gated the same way writes are, not as plain reading.
+  // See diaryService.js's assertWriteAllowed for the same check.
+  const { allowed, reason } = await isWriteAllowed();
+  if (!allowed) {
+    const err = new Error(
+      reason === 'EXPIRED' || reason === 'NO_ENTITLEMENT'
+        ? 'An active subscription is required to export your diary.'
+        : 'Your device clock looks wrong. Please reconnect to the internet to continue.'
+    );
+    err.code = 'WRITE_LOCKED';
+    err.reason = reason;
+    throw err;
+  }
+
   let base64;
   try {
     const doc = buildTourDiaryDocument({ month, year, entries, profile });

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeStackNavigator from './HomeStackNavigator';
 import MyDiariesStackNavigator from './MyDiariesStackNavigator';
 import CameraCaptureScreen from '../screens/CameraCaptureScreen';
-import ProfileSetupScreen from '../screens/ProfileSetupScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import AppTabBar from '../components/AppTabBar';
 import { COLORS } from '../constants/colors';
 
@@ -28,8 +28,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileSetupScreen}
-        initialParams={{ mode: 'edit' }}
+        component={ProfileScreen}
         options={{
           headerShown: true,
           title: 'My Profile',

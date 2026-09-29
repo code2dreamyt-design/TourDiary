@@ -5,21 +5,22 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import ToastHost from './src/components/Toast';
 import { runMigrations } from './src/database/migrations';
-import * as profileService from './src/services/profileService';
+import { AuthProvider } from './src/context/AuthContext';
 import { COLORS } from './src/constants/colors';
 
 export default function App() {
-  const [ready, setReady] = useState(false);
+  // This only gates the LOCAL diary database (SQLite) being ready — auth,
+  // profile, and subscription state are handled separately by
+  // AuthProvider/AppNavigator, which have their own "booting" state so
+  // each concern's async startup work doesn't block the other.
+  const [dbReady, setDbReady] = useState(false);
   const [initError, setInitError] = useState(null);
-  const [initialRoute, setInitialRoute] = useState('MainTabs');
 
   useEffect(() => {
     (async () => {
       try {
         await runMigrations();
-        const profileComplete = await profileService.hasProfile();
-        setInitialRoute(profileComplete ? 'MainTabs' : 'ProfileSetup');
-        setReady(true);
+        setDbReady(true);
       } catch (e) {
         setInitError('Unable to start the app database. Please restart the app.');
       }
@@ -34,7 +35,7 @@ export default function App() {
     );
   }
 
-  if (!ready) {
+  if (!dbReady) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -45,7 +46,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <AppNavigator initialRouteName={initialRoute} />
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
       <ToastHost />
     </SafeAreaProvider>
   );

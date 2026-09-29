@@ -1,7 +1,8 @@
 import { getDatabase } from '../database/database';
 import * as diaryRepo from '../repositories/diaryRepository';
 import * as entryRepo from '../repositories/diaryEntryRepository';
-import * as profileRepo from '../repositories/profileRepository';
+import * as secureStorage from '../storage/secureStorage';
+import { isWriteAllowed } from './entitlementService';
 import {
   getDaysInMonth,
   buildDateString,
@@ -16,6 +17,30 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+const WRITE_LOCK_MESSAGES = {
+  CLOCK_ROLLBACK: 'Your device clock looks wrong. Please reconnect to the internet to continue editing.',
+  NO_ENTITLEMENT: 'An active subscription is required to create or edit diary entries.',
+  EXPIRED: 'Your subscription has expired. Renew to continue creating or editing diary entries.',
+};
+
+/**
+ * Throws a WRITE_LOCKED error if the signed subscription entitlement
+ * (verified fully offline — see entitlementService.js) doesn't currently
+ * allow writes. Every diary-mutating function below calls this first, so
+ * a lapsed subscription is enforced in exactly one place rather than
+ * re-implemented per function. Reading diary data is never gated — only
+ * create/edit/delete.
+ */
+async function assertWriteAllowed() {
+  const { allowed, reason } = await isWriteAllowed();
+  if (!allowed) {
+    const err = new Error(WRITE_LOCK_MESSAGES[reason] || 'Writes are currently locked.');
+    err.code = 'WRITE_LOCKED';
+    err.reason = reason;
+    throw err;
+  }
+}
+
 /**
  * Creates a diary for the given month/year, generating one EMPTY entry per
  * calendar day (28-31, leap-year aware). Wrapped in a transaction so a
@@ -24,6 +49,8 @@ function nowIso() {
  * constraint backs this up at the DB level too).
  */
 export async function createDiary(month, year) {
+  await assertWriteAllowed();
+
   const existing = await diaryRepo.findDiaryByMonthYear(month, year);
   if (existing) {
     const err = new Error('A diary for this month already exists.');
@@ -86,17 +113,18 @@ export async function getOrCreateCurrentMonthDiary() {
 
 /**
  * Resolves (auto-creating if needed) the current month's diary and returns
- * today's entry row within it, plus the profile's CURRENT default From
- * location — for the Home screen's inline "today" card and the camera's
- * "add to today's entry" flow. defaultFromLocation is always read fresh
- * here (never cached/baked in), so a profile change is reflected immediately.
+ * today's entry row within it, plus the account's CURRENT usualTourStart
+ * (synced from the backend on every login/getme — see AuthContext) — for
+ * the Home screen's inline "today" card and the camera's "add to today's
+ * entry" flow. Always read fresh from secure storage here (never cached
+ * in a module variable), so a profile change is reflected immediately.
  */
 export async function getTodayEntryContext() {
   const diary = await getOrCreateCurrentMonthDiary();
   const today = getTodayLocalDateString();
   const entry = await entryRepo.findEntryByDiaryIdAndDate(diary.id, today);
-  const profile = await profileRepo.getProfileRow();
-  const defaultFromLocation = (profile && profile.default_from_location) || '';
+  const user = await secureStorage.getCachedUser();
+  const defaultFromLocation = (user && user.usualTourStart) || '';
   return { diary, entry, defaultFromLocation };
 }
 
@@ -147,6 +175,8 @@ async function assertEditable(entry) {
  * editing can never create a duplicate entry for the same date.
  */
 export async function saveEntry(entryId, { fromLocation, toLocation, remarks }) {
+  await assertWriteAllowed();
+
   const entry = await entryRepo.findEntryById(entryId);
   if (!entry) {
     const err = new Error('This entry could not be found.');
@@ -238,6 +268,7 @@ export function resolveFromLocation(entry, defaultFromLocation) {
  * (or a diary with no entries) behind.
  */
 export async function deleteDiary(diaryId) {
+  await assertWriteAllowed();
   const db = await getDatabase();
   await db.withTransactionAsync(async () => {
     await entryRepo.deleteEntriesByDiaryId(diaryId);
@@ -248,6 +279,7 @@ export async function deleteDiary(diaryId) {
 /** Deletes multiple diaries (and their entries) in a single transaction. */
 export async function deleteDiaries(diaryIds) {
   if (!diaryIds || diaryIds.length === 0) return;
+  await assertWriteAllowed();
   const db = await getDatabase();
   await db.withTransactionAsync(async () => {
     for (const id of diaryIds) {
