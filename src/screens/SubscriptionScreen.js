@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { verifyEntitlementToken } from '../services/entitlementService';
 import * as secureStorage from '../storage/secureStorage';
 import { ApiError } from '../api/client';
+import { showErrorToast } from '../components/Toast';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 
@@ -36,7 +37,7 @@ export default function SubscriptionScreen() {
       const payload = verifyEntitlementToken(token);
       setPaidUntil(payload?.paidUntil || null);
     } catch (e) {
-      setError('Unable to load subscription status.');
+      showErrorToast('Unable to load subscription status.');
     } finally {
       setLoading(false);
     }
@@ -104,15 +105,15 @@ export default function SubscriptionScreen() {
       // Razorpay's SDK rejects with { code, description } on cancel/failure,
       // not an ApiError — handle both shapes.
       if (err instanceof ApiError) {
-        setError(err.message || 'Unable to start checkout. Please try again.');
+        showErrorToast(err.message || 'Unable to start checkout. Please try again.');
       } else if (err?.description) {
         // User-cancelled or payment failed client-side — not a real error
         // worth alarming over unless it's something other than a cancel.
         if (err.code !== 0) {
-          setError(err.description);
+          showErrorToast(err.description);
         }
       } else {
-        setError('Unable to complete checkout. Please try again.');
+        showErrorToast('Unable to complete checkout. Please try again.');
       }
     } finally {
       setPayingPlan(null);
@@ -122,7 +123,7 @@ export default function SubscriptionScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -142,7 +143,7 @@ export default function SubscriptionScreen() {
 
       {activating && (
         <View style={styles.activatingBox}>
-          <ActivityIndicator color={COLORS.primary} />
+          <ActivityIndicator color={COLORS.primaryText} />
           <Text style={styles.activatingText}>Confirming your payment…</Text>
         </View>
       )}
@@ -162,7 +163,7 @@ export default function SubscriptionScreen() {
             <Text style={styles.planPrice}>{plan.priceLabel}</Text>
           </View>
           {payingPlan === plan.key ? (
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={COLORS.primaryText} />
           ) : (
             <Text style={styles.planCta}>{subscriptionActive ? 'Renew' : 'Subscribe'}</Text>
           )}
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
   statusSub: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.xs, lineHeight: 18 },
   activatingBox: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.md },
   activatingText: { color: COLORS.textSecondary },
-  errorText: { color: COLORS.danger, marginBottom: SPACING.md },
+  errorText: { color: COLORS.dangerText, marginBottom: SPACING.md },
   planCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -202,6 +203,6 @@ const styles = StyleSheet.create({
   },
   planLabel: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textPrimary },
   planPrice: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: 2 },
-  planCta: { color: COLORS.primary, fontWeight: '700' },
+  planCta: { color: COLORS.primaryText, fontWeight: '700' },
   footnote: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, marginTop: SPACING.md, lineHeight: 18, textAlign: 'center' },
 });

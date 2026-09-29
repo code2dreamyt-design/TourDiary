@@ -101,7 +101,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   badgeCompletedText: { color: COLORS.success, fontWeight: '700', fontSize: FONT_SIZE.sm },
   todayTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
   fieldValue: { fontSize: FONT_SIZE.base, color: COLORS.textPrimary, marginTop: 2 },
-  errorText: { color: COLORS.danger, marginTop: SPACING.sm },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.sm },
   fieldLabel: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.md, fontWeight: '600' },
   input: {
     borderWidth: 1,

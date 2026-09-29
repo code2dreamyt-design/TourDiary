@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Ale
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
+import { showErrorToast } from '../../components/Toast';
 import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../../constants/dimensions';
 
@@ -42,7 +43,7 @@ export default function ProfilePicSetupScreen() {
       await uploadProfilePic(localUri, 'image/jpeg');
       dismissProfilePicPrompt();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to upload your photo. Please try again.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to upload your photo. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -83,13 +84,13 @@ export default function ProfilePicSetupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, padding: SPACING.xl, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: COLORS.primary, textAlign: 'center' },
+  title: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: COLORS.primaryText, textAlign: 'center' },
   subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING.sm, marginBottom: SPACING.xl },
   avatarWrap: { marginBottom: SPACING.xl },
   avatar: { width: 140, height: 140, borderRadius: 70 },
   avatarPlaceholder: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
   avatarPlaceholderText: { color: COLORS.textMuted, fontSize: FONT_SIZE.sm },
-  errorText: { color: COLORS.danger, marginBottom: SPACING.md },
+  errorText: { color: COLORS.dangerText, marginBottom: SPACING.md },
   primaryButton: {
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,

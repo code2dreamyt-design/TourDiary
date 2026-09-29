@@ -185,7 +185,7 @@ export default function DiaryDetailsScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   container: { padding: SPACING.lg, backgroundColor: COLORS.background, flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  errorText: { color: COLORS.danger, marginTop: SPACING.sm, fontSize: FONT_SIZE.base },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.sm, fontSize: FONT_SIZE.base },
   flashBanner: { backgroundColor: COLORS.successBg, borderRadius: RADIUS.md, padding: SPACING.md, marginVertical: SPACING.sm },
   flashText: { color: COLORS.success, fontWeight: '700', textAlign: 'center' },
   lockedBanner: { backgroundColor: COLORS.lockedBg, borderRadius: RADIUS.md, padding: SPACING.md, marginVertical: SPACING.sm },
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.primaryText,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
   },

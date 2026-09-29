@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as ExpoLinking from 'expo-linking';
 import MainTabNavigator from './MainTabNavigator';
@@ -36,8 +36,24 @@ const linking = {
   },
 };
 
+// Dark navigation theme: without it, React Navigation paints its default
+// LIGHT background behind every screen (visible as white flashes during
+// transitions and when a list overscrolls).
+const navTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: COLORS.primaryText,
+    background: COLORS.background,
+    card: COLORS.header,
+    text: COLORS.white,
+    border: COLORS.border,
+    notification: COLORS.danger,
+  },
+};
+
 const screenOptions = {
-  headerStyle: { backgroundColor: COLORS.primary },
+  headerStyle: { backgroundColor: COLORS.header },
   headerTintColor: COLORS.white,
   headerTitleStyle: { fontWeight: '700' },
 };
@@ -48,13 +64,13 @@ export default function AppNavigator() {
   if (booting) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer linking={linking} theme={navTheme}>
       <Stack.Navigator screenOptions={screenOptions}>
         {!isAuthenticated ? (
           <>

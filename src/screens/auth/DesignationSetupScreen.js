@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator,
 import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
+import { showErrorToast } from '../../components/Toast';
 import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../../constants/dimensions';
 
@@ -44,7 +45,7 @@ export default function DesignationSetupScreen() {
       // AppNavigator switches to MainTabs automatically once
       // needsDesignationSetup flips false.
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to save. Please try again.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to save. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   picker: { height: Platform.OS === 'ios' ? 150 : 50, width: '100%', color: COLORS.textPrimary },
-  errorText: { color: COLORS.danger, marginTop: SPACING.md, fontSize: FONT_SIZE.base },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.md, fontSize: FONT_SIZE.base },
   saveButton: {
     marginTop: SPACING.xl,
     marginBottom: SPACING.xl,

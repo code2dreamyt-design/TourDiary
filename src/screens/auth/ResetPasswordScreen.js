@@ -5,6 +5,7 @@ import * as secureStorage from '../../storage/secureStorage';
 import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import PasswordInput from '../../components/PasswordInput';
+import { showErrorToast } from '../../components/Toast';
 import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../../constants/dimensions';
 
@@ -46,7 +47,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
       await secureStorage.setCachedUser(null);
       setDone(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to reset your password. Please try again.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to reset your password. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +102,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: SPACING.xl, backgroundColor: COLORS.background, justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background, padding: SPACING.xl },
-  title: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: COLORS.primary, textAlign: 'center', marginBottom: SPACING.xl },
+  title: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: COLORS.primaryText, textAlign: 'center', marginBottom: SPACING.xl },
   fieldLabel: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.md, fontWeight: '600' },
   input: {
     borderWidth: 1,
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     minHeight: TOUCH_TARGET_MIN,
   },
-  errorText: { color: COLORS.danger, marginTop: SPACING.md, fontSize: FONT_SIZE.base },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.md, fontSize: FONT_SIZE.base },
   primaryButton: {
     marginTop: SPACING.xl,
     backgroundColor: COLORS.primary,

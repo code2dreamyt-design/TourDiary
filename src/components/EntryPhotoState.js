@@ -100,13 +100,13 @@ export default function EntryPhotoState({ photoPath }) {
 const styles = StyleSheet.create({
   row: { marginTop: SPACING.sm },
   mutedText: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, fontStyle: 'italic' },
-  missingText: { fontSize: FONT_SIZE.sm, color: COLORS.danger, fontStyle: 'italic' },
+  missingText: { fontSize: FONT_SIZE.sm, color: COLORS.dangerText, fontStyle: 'italic' },
   toggleButton: {
     alignSelf: 'flex-start',
     minHeight: TOUCH_TARGET_MIN,
     justifyContent: 'center',
   },
-  toggleText: { fontSize: FONT_SIZE.base, color: COLORS.primary, fontWeight: '700' },
+  toggleText: { fontSize: FONT_SIZE.base, color: COLORS.primaryText, fontWeight: '700' },
   // Smaller than the old full-width box, and uses "contain" so the whole
   // photo (including the corner stamp) is always visible, letterboxed
   // rather than cropped.

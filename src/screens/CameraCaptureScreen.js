@@ -208,7 +208,7 @@ export default function CameraCaptureScreen({ navigation, route }) {
   if (!permissionsChecked) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }

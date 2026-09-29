@@ -12,7 +12,7 @@ export default function MyDiariesStackNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.primary },
+        headerStyle: { backgroundColor: COLORS.header },
         headerTintColor: COLORS.white,
         headerTitleStyle: { fontWeight: '700' },
         // Default for every screen in this stack — MyDiariesScreen adds

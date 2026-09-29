@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView
 import * as authApi from '../api/authApi';
 import { ApiError } from '../api/client';
 import PasswordInput from '../components/PasswordInput';
+import { showErrorToast } from '../components/Toast';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 
@@ -30,7 +31,7 @@ export default function ChangePasswordScreen({ navigation }) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to change your password.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to change your password.');
     } finally {
       setSubmitting(false);
     }
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     minHeight: TOUCH_TARGET_MIN,
   },
-  errorText: { color: COLORS.danger, marginTop: SPACING.md },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.md },
   saveButton: {
     marginTop: SPACING.xl,
     marginBottom: SPACING.xl,

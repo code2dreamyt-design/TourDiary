@@ -20,6 +20,14 @@ export function showToast(message, duration = 1600) {
   if (showHandler) showHandler(message, duration);
 }
 
+// Same banner as every other toast, just held a little longer so an error
+// message can actually be read (a "coming soon" note needs ~1.6s, a
+// sentence explaining what went wrong needs more).
+const ERROR_TOAST_MS = 3500;
+export function showErrorToast(message) {
+  showToast(message || 'Something went wrong. Please try again.', ERROR_TOAST_MS);
+}
+
 // Mounted once near the app root (see App.js), above the navigator, so a
 // toast survives whatever screen transition happens right after it's
 // triggered (e.g. saving a photo and immediately navigating back to
@@ -65,7 +73,7 @@ export default function ToastHost() {
       style={[styles.container, { top: insets.top + SPACING.md, opacity }]}
     >
       <View style={styles.banner}>
-        <Text style={styles.text} numberOfLines={2}>
+        <Text style={styles.text} numberOfLines={3}>
           {message}
         </Text>
       </View>
@@ -84,7 +92,9 @@ const styles = StyleSheet.create({
   },
   banner: {
     maxWidth: '86%',
-    backgroundColor: COLORS.primaryDark,
+    backgroundColor: COLORS.surfaceRaised,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.lg,

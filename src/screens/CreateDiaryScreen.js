@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   openButtonText: { color: COLORS.white, fontWeight: '700' },
-  errorText: { color: COLORS.danger, marginTop: SPACING.md },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.md },
 });

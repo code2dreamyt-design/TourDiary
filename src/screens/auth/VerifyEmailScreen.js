@@ -50,7 +50,7 @@ export default function VerifyEmailScreen({ route, navigation }) {
     <View style={styles.center}>
       {status === 'verifying' && (
         <>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={COLORS.primaryText} />
           <Text style={styles.text}>Verifying your email…</Text>
         </>
       )}

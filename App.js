@@ -7,6 +7,7 @@ import ToastHost from './src/components/Toast';
 import { runMigrations } from './src/database/migrations';
 import { AuthProvider } from './src/context/AuthContext';
 import { COLORS } from './src/constants/colors';
+import EntitlementKeyCheck from './src/debug/EntitlementKeyCheck'; // TEMP — remove after the key check shows ✅ (see that file)
 
 export default function App() {
   // This only gates the LOCAL diary database (SQLite) being ready — auth,
@@ -38,7 +39,7 @@ export default function App() {
   if (!dbReady) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -47,6 +48,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <AuthProvider>
+        <EntitlementKeyCheck />{/* TEMP — remove after the key check shows ✅ */}
         <AppNavigator />
       </AuthProvider>
       <ToastHost />
@@ -55,6 +57,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F8F6', padding: 24 },
-  errorText: { color: '#B3261E', fontSize: 16, textAlign: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background, padding: 24 },
+  errorText: { color: COLORS.dangerText, fontSize: 16, textAlign: 'center' },
 });

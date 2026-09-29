@@ -199,7 +199,7 @@ export default function PhotoDetailsFormScreen({ navigation, route }) {
   if (loadingContext) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.primaryText,
     marginRight: SPACING.sm,
     alignItems: 'center',
     justifyContent: 'center',

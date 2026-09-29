@@ -144,7 +144,7 @@ export default function MyDiariesScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -240,7 +240,7 @@ export default function MyDiariesScreen({ navigation }) {
 const styles = StyleSheet.create({
   list: { padding: SPACING.lg, backgroundColor: COLORS.background, flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background, padding: SPACING.lg },
-  errorText: { color: COLORS.danger, fontSize: FONT_SIZE.base },
+  errorText: { color: COLORS.dangerText, fontSize: FONT_SIZE.base },
   emptyText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.base, textAlign: 'center' },
   card: {
     backgroundColor: COLORS.surface,
@@ -251,21 +251,21 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   cardSelected: {
-    borderColor: COLORS.primary,
+    borderColor: COLORS.primaryText,
     borderWidth: 2,
     backgroundColor: COLORS.primaryLight,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   cardTitle: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textPrimary },
-  percent: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.primary },
+  percent: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.primaryText },
   cardSub: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.xs },
   checkbox: {
     width: 22,
     height: 22,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.primaryText,
     marginRight: SPACING.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  openButtonText: { color: COLORS.primaryDark, fontWeight: '700' },
+  openButtonText: { color: COLORS.primaryText, fontWeight: '700' },
   deleteButton: {
     flex: 1,
     backgroundColor: COLORS.dangerBg,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteButtonText: { color: COLORS.danger, fontWeight: '700' },
+  deleteButtonText: { color: COLORS.dangerText, fontWeight: '700' },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   headerButton: { paddingHorizontal: SPACING.md, minHeight: TOUCH_TARGET_MIN, justifyContent: 'center' },
   headerButtonText: { color: COLORS.white, fontWeight: '700', fontSize: FONT_SIZE.base },
@@ -313,6 +313,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectionDeleteButtonDisabled: { backgroundColor: COLORS.locked },
+  selectionDeleteButtonDisabled: { backgroundColor: COLORS.lockedFill },
   selectionDeleteText: { color: COLORS.white, fontWeight: '700' },
 });

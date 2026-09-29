@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import * as authApi from '../api/authApi';
 import * as secureStorage from '../storage/secureStorage';
 import { ApiError } from '../api/client';
+import { showErrorToast } from '../components/Toast';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 import { getMonthName, buildDateString, formatDisplayDate } from '../utils/dateUtils';
@@ -102,7 +103,7 @@ export default function ProfileScreen({ navigation }) {
     } catch (err) {
       // updateName is rate-limited server-side (2 changes / 20 days) — see
       // user.routes.js's changeNameLimiter — surface that message as-is.
-      setError(err instanceof ApiError ? err.message : 'Unable to update your name.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to update your name.');
     } finally {
       setSavingName(false);
     }
@@ -131,7 +132,7 @@ export default function ProfileScreen({ navigation }) {
       setEditingDesignation(false);
     } catch (err) {
       // Also rate-limited server-side (3 changes / 20 days).
-      setError(err instanceof ApiError ? err.message : 'Unable to update your posting details.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to update your posting details.');
     } finally {
       setSavingDesignation(false);
     }
@@ -148,7 +149,7 @@ export default function ProfileScreen({ navigation }) {
     } catch (err) {
       // Backend rejects a second DOB write outright — see
       // user.controller.js: "if (user.dob) throw 400".
-      setError(err instanceof ApiError ? err.message : 'Unable to save your date of birth.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to save your date of birth.');
     } finally {
       setSavingDob(false);
     }
@@ -172,7 +173,7 @@ export default function ProfileScreen({ navigation }) {
     try {
       await uploadProfilePic(result.assets[0].uri, 'image/jpeg');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to upload your photo.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to upload your photo.');
     } finally {
       setUploadingPic(false);
     }
@@ -189,7 +190,7 @@ export default function ProfileScreen({ navigation }) {
           try {
             await removeProfilePic();
           } catch (err) {
-            setError(err instanceof ApiError ? err.message : 'Unable to remove your photo.');
+            showErrorToast(err instanceof ApiError ? err.message : 'Unable to remove your photo.');
           } finally {
             setUploadingPic(false);
           }
@@ -205,7 +206,7 @@ export default function ProfileScreen({ navigation }) {
       await authApi.resendVerificationEmail();
       Alert.alert('Sent', 'A verification email has been sent to your inbox.');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to resend the verification email.');
+      showErrorToast(err instanceof ApiError ? err.message : 'Unable to resend the verification email.');
     } finally {
       setResending(false);
     }
@@ -221,7 +222,7 @@ export default function ProfileScreen({ navigation }) {
   if (!user) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -336,7 +337,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
         )}
         <TouchableOpacity onPress={() => navigation.navigate('ChangePassword')} accessibilityRole="button" style={styles.changePasswordRow}>
-          <Ionicons name="lock-closed-outline" size={15} color={COLORS.primary} />
+          <Ionicons name="lock-closed-outline" size={15} color={COLORS.primaryText} />
           <Text style={[styles.editLink, { marginLeft: SPACING.xs }]}>Change Password</Text>
         </TouchableOpacity>
       </View>
@@ -460,7 +461,7 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <View style={styles.manageRow}>
             <Text style={styles.editLink}>Manage</Text>
-            <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+            <Ionicons name="chevron-forward" size={14} color={COLORS.primaryText} />
           </View>
         </View>
         <View style={[styles.subStatusPill, subscriptionActive ? styles.subStatusPillActive : styles.subStatusPillInactive]}>
@@ -471,7 +472,7 @@ export default function ProfileScreen({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} accessibilityRole="button">
-        <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
+        <Ionicons name="log-out-outline" size={18} color={COLORS.dangerText} />
         <Text style={styles.logoutButtonText}>Log Out</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
 
   hero: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.header,
     alignItems: 'center',
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.lg,
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.header,
   },
   avatarOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -531,7 +532,7 @@ const styles = StyleSheet.create({
   avatarActionText: { color: COLORS.white, fontWeight: '600', fontSize: FONT_SIZE.sm, textDecorationLine: 'underline' },
   avatarActionDanger: { color: '#F4B3AD' },
 
-  errorText: { color: COLORS.danger, marginTop: SPACING.md, marginHorizontal: SPACING.lg, textAlign: 'center' },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.md, marginHorizontal: SPACING.lg, textAlign: 'center' },
 
   card: {
     backgroundColor: COLORS.surface,
@@ -557,7 +558,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   manageRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  editLink: { color: COLORS.primary, fontWeight: '700', fontSize: FONT_SIZE.sm },
+  editLink: { color: COLORS.primaryText, fontWeight: '700', fontSize: FONT_SIZE.sm },
   valueText: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary, marginTop: SPACING.xs },
   hint: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, marginTop: SPACING.xs, lineHeight: 18 },
   saluteRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.xs },
@@ -604,7 +605,7 @@ const styles = StyleSheet.create({
   verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: SPACING.xs },
   verifiedBadge: { color: COLORS.success, fontWeight: '700', fontSize: FONT_SIZE.sm },
   unverifiedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SPACING.xs },
-  unverifiedBadge: { color: COLORS.danger, fontWeight: '700', fontSize: FONT_SIZE.sm },
+  unverifiedBadge: { color: COLORS.dangerText, fontWeight: '700', fontSize: FONT_SIZE.sm },
   changePasswordRow: { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.md },
   summaryRow: { paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   summaryRowLast: { borderBottomWidth: 0 },
@@ -621,7 +622,7 @@ const styles = StyleSheet.create({
   subStatusPillInactive: { backgroundColor: COLORS.dangerBg },
   subStatus: { fontSize: FONT_SIZE.sm, fontWeight: '700' },
   subStatusActive: { color: COLORS.success },
-  subStatusInactive: { color: COLORS.danger },
+  subStatusInactive: { color: COLORS.dangerText },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -635,5 +636,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.danger,
   },
-  logoutButtonText: { color: COLORS.danger, fontWeight: '700', fontSize: FONT_SIZE.base },
+  logoutButtonText: { color: COLORS.dangerText, fontWeight: '700', fontSize: FONT_SIZE.base },
 });

@@ -38,7 +38,7 @@ export default function CurrentDiaryScreen({ navigation }) {
   if (loading || (!diaryId && !error)) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primaryText} />
       </View>
     );
   }
@@ -56,5 +56,5 @@ export default function CurrentDiaryScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background, padding: SPACING.lg },
-  errorText: { color: COLORS.danger, fontSize: FONT_SIZE.base, textAlign: 'center' },
+  errorText: { color: COLORS.dangerText, fontSize: FONT_SIZE.base, textAlign: 'center' },
 });

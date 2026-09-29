@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator,
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
 import PasswordInput from '../../components/PasswordInput';
+import { showErrorToast } from '../../components/Toast';
 import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../../constants/dimensions';
 
@@ -25,9 +26,9 @@ export default function LoginScreen({ navigation }) {
       // Navigation reacts to isAuthenticated automatically — see AppNavigator.
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message || 'Unable to log in. Please try again.');
+        showErrorToast(err.message || 'Unable to log in. Please try again.');
       } else {
-        setError('Unable to log in. Please try again.');
+        showErrorToast('Unable to log in. Please try again.');
       }
     } finally {
       setSubmitting(false);
@@ -87,7 +88,7 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: SPACING.xl, backgroundColor: COLORS.background, justifyContent: 'center' },
-  title: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: COLORS.primary, textAlign: 'center' },
+  title: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: COLORS.primaryText, textAlign: 'center' },
   subtitle: { fontSize: FONT_SIZE.base, color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING.sm, marginBottom: SPACING.xl },
   fieldLabel: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: SPACING.md, fontWeight: '600' },
   input: {
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     minHeight: TOUCH_TARGET_MIN,
   },
-  errorText: { color: COLORS.danger, marginTop: SPACING.md, fontSize: FONT_SIZE.base },
+  errorText: { color: COLORS.dangerText, marginTop: SPACING.md, fontSize: FONT_SIZE.base },
   primaryButton: {
     marginTop: SPACING.xl,
     backgroundColor: COLORS.primary,
@@ -112,8 +113,8 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: { color: COLORS.white, fontWeight: '700', fontSize: FONT_SIZE.base },
   linkButton: { marginTop: SPACING.lg, alignItems: 'center', minHeight: TOUCH_TARGET_MIN, justifyContent: 'center' },
-  linkText: { color: COLORS.primary, fontWeight: '600' },
+  linkText: { color: COLORS.primaryText, fontWeight: '600' },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.md },
   footerText: { color: COLORS.textSecondary },
-  footerLink: { color: COLORS.primary, fontWeight: '700' },
+  footerLink: { color: COLORS.primaryText, fontWeight: '700' },
 });

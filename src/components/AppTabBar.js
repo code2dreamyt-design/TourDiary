@@ -81,7 +81,7 @@ export default function AppTabBar({ state, descriptors, navigation }) {
               accessibilityRole="button"
               accessibilityState={{ selected: isFocused }}
             >
-              <Ionicons name={iconName} size={22} color={isFocused ? COLORS.primary : COLORS.textMuted} />
+              <Ionicons name={iconName} size={22} color={isFocused ? COLORS.primaryText : COLORS.textMuted} />
               <Text style={[styles.label, isFocused && styles.labelFocused]}>{label}</Text>
             </TouchableOpacity>
           );
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   label: { fontSize: FONT_SIZE.sm - 2, color: COLORS.textMuted },
-  labelFocused: { color: COLORS.primary, fontWeight: '700' },
+  labelFocused: { color: COLORS.primaryText, fontWeight: '700' },
   cameraButton: {
     position: 'absolute',
     right: SPACING.lg,

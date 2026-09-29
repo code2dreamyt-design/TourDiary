@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
   },
   buttonDisabled: { backgroundColor: COLORS.background },
-  buttonText: { color: COLORS.primaryDark, fontWeight: '700', fontSize: FONT_SIZE.base },
+  buttonText: { color: COLORS.primaryText, fontWeight: '700', fontSize: FONT_SIZE.base },
   buttonTextDisabled: { color: COLORS.textMuted },
   rangeText: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, fontWeight: '600' },
 });

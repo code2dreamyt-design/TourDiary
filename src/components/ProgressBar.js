@@ -26,7 +26,7 @@ export default function ProgressBar({ completed, total }) {
 const styles = StyleSheet.create({
   container: { marginVertical: SPACING.sm },
   track: { height: 10, borderRadius: RADIUS.sm, backgroundColor: COLORS.border, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: RADIUS.sm },
+  fill: { height: '100%', backgroundColor: COLORS.primaryText, borderRadius: RADIUS.sm },
   fillComplete: { backgroundColor: COLORS.success },
   label: { marginTop: SPACING.xs, fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, fontWeight: '600' },
 });

@@ -13,7 +13,7 @@ export default function TDPlaceholderScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
-        <Ionicons name="calculator-outline" size={30} color={COLORS.primary} />
+        <Ionicons name="calculator-outline" size={30} color={COLORS.primaryText} />
       </View>
       <Text style={styles.title}>TD Calculator</Text>
       <Text style={styles.subtitle}>Coming soon.</Text>
