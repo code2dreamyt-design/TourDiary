@@ -2,6 +2,7 @@ import React, { useCallback, useLayoutEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as diaryService from '../services/diaryService';
+import HeaderAvatar from '../components/HeaderAvatar';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 import { getMonthName } from '../utils/dateUtils';
@@ -134,6 +135,7 @@ export default function MyDiariesScreen({ navigation }) {
           <TouchableOpacity onPress={toggleSelectMode} accessibilityRole="button" style={styles.headerButton}>
             <Text style={styles.headerButtonText}>{selectMode ? 'Cancel' : 'Select'}</Text>
           </TouchableOpacity>
+          <HeaderAvatar />
         </View>
       ),
     });
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteButtonText: { color: COLORS.danger, fontWeight: '700' },
-  headerRow: { flexDirection: 'row' },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
   headerButton: { paddingHorizontal: SPACING.md, minHeight: TOUCH_TARGET_MIN, justifyContent: 'center' },
   headerButtonText: { color: COLORS.white, fontWeight: '700', fontSize: FONT_SIZE.base },
   selectionBar: {

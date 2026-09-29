@@ -38,23 +38,36 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "TourDiary needs camera access to take GPS-stamped tour photos.",
+          "cameraPermission": "Forest App needs camera access to take GPS-stamped tour photos.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "TourDiary needs your location to stamp photos with GPS coordinates."
+          "locationWhenInUsePermission": "Forest App needs your location to stamp photos with GPS coordinates."
         }
       ],
-      ["expo-splash-screen", { "backgroundColor": "#1F4422", "image": "./assets/splash-icon.png", "imageWidth": 200 }],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1F4422",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
       [
         "expo-media-library",
         {
-          "photosPermission": "TourDiary needs access to your photos to save pictures you take.",
-          "savePhotosPermission": "TourDiary needs permission to save photos to your gallery.",
+          "photosPermission": "Forest App needs access to your photos to save pictures you take.",
+          "savePhotosPermission": "Forest App needs permission to save photos to your gallery.",
           "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Forest App needs access to your photos so you can choose a profile picture."
         }
       ]
     ],

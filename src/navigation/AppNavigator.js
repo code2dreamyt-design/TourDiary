@@ -7,6 +7,7 @@ import MainTabNavigator from './MainTabNavigator';
 import PhotoDetailsFormScreen from '../screens/PhotoDetailsFormScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
@@ -83,6 +84,7 @@ export default function AppNavigator() {
               options={{ headerShown: false, contentStyle: { backgroundColor: '#000' } }}
             />
             <Stack.Screen name="PhotoDetailsForm" component={PhotoDetailsFormScreen} options={{ title: 'Save Photo' }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'My Profile' }} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} options={{ title: 'Subscription' }} />
             <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: 'Change Password' }} />
           </>

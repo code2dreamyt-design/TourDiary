@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import * as authApi from '../api/authApi';
 import { ApiError } from '../api/client';
+import PasswordInput from '../components/PasswordInput';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
 
@@ -38,13 +39,13 @@ export default function ChangePasswordScreen({ navigation }) {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.fieldLabel}>Current Password</Text>
-      <TextInput style={styles.input} value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry placeholderTextColor={COLORS.textMuted} />
+      <PasswordInput value={currentPassword} onChangeText={setCurrentPassword} />
 
       <Text style={styles.fieldLabel}>New Password</Text>
-      <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} secureTextEntry placeholder="At least 8 characters" placeholderTextColor={COLORS.textMuted} />
+      <PasswordInput value={newPassword} onChangeText={setNewPassword} placeholder="At least 8 characters" />
 
       <Text style={styles.fieldLabel}>Confirm New Password</Text>
-      <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry placeholderTextColor={COLORS.textMuted} />
+      <PasswordInput value={confirmPassword} onChangeText={setConfirmPassword} />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 

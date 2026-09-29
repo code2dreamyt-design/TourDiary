@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
+import PasswordInput from '../../components/PasswordInput';
 import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../../constants/dimensions';
 
@@ -52,13 +53,10 @@ export default function LoginScreen({ navigation }) {
         />
 
         <Text style={styles.fieldLabel}>Password</Text>
-        <TextInput
-          style={styles.input}
+        <PasswordInput
           value={password}
           onChangeText={setPassword}
           placeholder="Password"
-          placeholderTextColor={COLORS.textMuted}
-          secureTextEntry
           autoComplete="password"
         />
 

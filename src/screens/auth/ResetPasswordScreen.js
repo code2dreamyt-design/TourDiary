@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import * as authApi from '../../api/authApi';
 import * as secureStorage from '../../storage/secureStorage';
 import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import PasswordInput from '../../components/PasswordInput';
 import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../../constants/dimensions';
 
@@ -75,23 +76,17 @@ export default function ResetPasswordScreen({ route, navigation }) {
       <Text style={styles.title}>Set a new password</Text>
 
       <Text style={styles.fieldLabel}>New Password</Text>
-      <TextInput
-        style={styles.input}
+      <PasswordInput
         value={newPassword}
         onChangeText={setNewPassword}
         placeholder="At least 8 characters"
-        placeholderTextColor={COLORS.textMuted}
-        secureTextEntry
       />
 
       <Text style={styles.fieldLabel}>Confirm Password</Text>
-      <TextInput
-        style={styles.input}
+      <PasswordInput
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         placeholder="Re-enter password"
-        placeholderTextColor={COLORS.textMuted}
-        secureTextEntry
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
