@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { FONT_SIZE, SPACING } from '../constants/dimensions';
-import { showToast } from './Toast';
 
 // Ionicons name for each tab, without the focused/unfocused suffix —
 // resolved below to the filled variant when focused, "-outline" otherwise.
@@ -37,13 +36,6 @@ export default function AppTabBar({ state, descriptors, navigation }) {
   const bottomInset = Math.max(insets.bottom, SPACING.sm);
 
   function goTo(route, isFocused) {
-    // TD is not a real feature yet — tapping it gives feedback without
-    // actually navigating anywhere (see TDPlaceholderScreen for the
-    // fallback if it's ever reached another way).
-    if (route.name === 'TD') {
-      showToast('TD Calculator — coming soon.');
-      return;
-    }
     const event = navigation.emit({
       type: 'tabPress',
       target: route.key,

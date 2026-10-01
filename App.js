@@ -7,7 +7,6 @@ import ToastHost from './src/components/Toast';
 import { runMigrations } from './src/database/migrations';
 import { AuthProvider } from './src/context/AuthContext';
 import { COLORS } from './src/constants/colors';
-import EntitlementKeyCheck from './src/debug/EntitlementKeyCheck'; // TEMP — remove after the key check shows ✅ (see that file)
 
 export default function App() {
   // This only gates the LOCAL diary database (SQLite) being ready — auth,
@@ -48,7 +47,6 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <AuthProvider>
-        <EntitlementKeyCheck />{/* TEMP — remove after the key check shows ✅ */}
         <AppNavigator />
       </AuthProvider>
       <ToastHost />

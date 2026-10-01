@@ -20,12 +20,27 @@ Requires Node.js and the Expo Go app on your phone (or an Android/iOS emulator).
 **Diary**
 - Current-month diary, auto-created on first open
 - Create a diary for any historical month/year (leap-year aware)
-- Daily entries: From / To / Remarks, 3 entries per page with Previous/Next
+- Daily entries: From / To / Remarks, 3 entries per page, with a swipeable page-jump strip pinned at the top (1, 4, 7, 10 …) instead of Previous/Next
 - Edit any existing entry (updates in place — never duplicates a row)
 - Future dates locked in the *current* month only; historical months are fully editable
 - Missed days stay empty until filled — never auto-filled or deleted
 - Progress tracking and a "My Diaries" list with completion %
 - Word (.docx) export via the native share sheet, blocked until the diary is 100% complete
+
+**TD Calculator** (the "TD" tab)
+- Two kinds of measurement, switched with the toggle at the top: **TD** (timber legally taken from the forest — has a marking number and a paid / free-grant status) and **Seized timber** (seized by the department — no marking number, no status). Same calculation for both; each has its own list and its own export section.
+- Name, father's name, address and a free-text **compartment** (every beat has its own; recently used ones are offered as one-tap suggestions). Range, block and beat are NOT entered — they are read from the user's profile when a record is shown or exported.
+- Trees (1–4, species + class) -> sizes (L x W x T x Qty per species) -> result, with live volumes
+- Exact integer arithmetic, 3-decimal precision: row total = round(L x W x T x Qty) from the exact product; converted volume = sum of the printed row totals; conversion % to 2 decimals; exactly 65% is *within* the limit
+- Stored on-device in SQLite (`td_records`, `td_trees`, `td_sizes`). The tables are created on demand by `src/database/tdSchema.js` (not by the numbered migrations), so they work whatever version the database is at.
+- Word (.docx) export — single record or batch (date range + search + tick-to-select), always one kind at a time. TD: "Timber Distribution Record"; seized: "Seized Timber Record". Long tables flow onto extra pages with a repeating header and page numbers. No PDF export.
+- **Subscription rules match the diary:** viewing saved records is always allowed; creating, editing, deleting and exporting require an active subscription, enforced in `tdService.js` / `tdExportService.js` using the same offline-verified signed entitlement (`isWriteAllowed`)
+- Reference volume table lives in `src/constants/tdData.js` (note: ID and IE values are identical in the source table — please confirm)
+
+**Downloads**
+- Diary and TD Word files are saved onto the phone (`src/services/deviceSave.js`): on Android the first download asks for a folder once and remembers it; "Change folder" in the confirmation dialog resets it. On iOS the share sheet ("Save to Files") is used.
+- A completed (100%) diary has a Download button both on its card in My Diaries and inside the diary.
+- Diary document layout (`exportService.js`): title with name, designation and beat; `(w.e.f. ...)` line; Date / From / To / Particular-Details table; signature block — Van Mitra (or Forest Worker / Others): own signature + Forest Guard I/C, Block Officer, Range Officer; Forest Guard: own signature + Block Officer, Range Officer.
 
 **Profile**
 - One-time setup on first launch (name, designation, title, DOB, usual tour-start location) — required before any diary can be created

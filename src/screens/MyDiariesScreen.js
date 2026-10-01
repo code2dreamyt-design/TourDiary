@@ -2,6 +2,10 @@ import React, { useCallback, useLayoutEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as diaryService from '../services/diaryService';
+import { exportDiaryToWord, buildDiaryProfile } from '../services/exportService';
+import { useAuth } from '../context/AuthContext';
+import * as secureStorage from '../storage/secureStorage';
+import { presentExportError, presentExportResult } from '../utils/exportUi';
 import HeaderAvatar from '../components/HeaderAvatar';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE, TOUCH_TARGET_MIN } from '../constants/dimensions';
@@ -13,6 +17,8 @@ export default function MyDiariesScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [exportingId, setExportingId] = useState(null);
+  const { user } = useAuth();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +66,30 @@ export default function MyDiariesScreen({ navigation }) {
       toggleSelected(item.id);
     } else {
       navigation.navigate('DiaryDetails', { diaryId: item.id });
+    }
+  }
+
+  // Same download as the one inside the diary — offered here too once the
+  // diary is 100% complete.
+  async function handleDownload(item) {
+    if (exportingId != null) return;
+    setExportingId(item.id);
+    try {
+      const [entries, salutation] = await Promise.all([
+        diaryService.getDiaryEntries(item.id),
+        secureStorage.getSalutation(),
+      ]);
+      const result = await exportDiaryToWord({
+        month: item.month,
+        year: item.year,
+        entries,
+        profile: buildDiaryProfile(user, salutation),
+      });
+      presentExportResult(result);
+    } catch (e) {
+      presentExportError(e, navigation);
+    } finally {
+      setExportingId(null);
     }
   }
 
@@ -206,6 +236,16 @@ export default function MyDiariesScreen({ navigation }) {
                   >
                     <Text style={styles.openButtonText}>Open</Text>
                   </TouchableOpacity>
+                  {item.total > 0 && item.completed === item.total && (
+                    <TouchableOpacity
+                      style={styles.downloadButton}
+                      onPress={() => handleDownload(item)}
+                      disabled={exportingId != null}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.downloadButtonText}>{exportingId === item.id ? 'Preparing…' : 'Download'}</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => confirmDeleteOne(item)}
@@ -283,6 +323,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   openButtonText: { color: COLORS.primaryText, fontWeight: '700' },
+  downloadButton: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.md,
+    minHeight: TOUCH_TARGET_MIN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadButtonText: { color: COLORS.white, fontWeight: '700' },
   deleteButton: {
     flex: 1,
     backgroundColor: COLORS.dangerBg,

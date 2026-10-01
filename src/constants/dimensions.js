@@ -25,3 +25,7 @@ export const FONT_SIZE = {
 // Minimum recommended touch target size (accessibility) for field use,
 // including with gloves / in outdoor conditions.
 export const TOUCH_TARGET_MIN = 48;
+
+// Bottom scroll padding so the last piece of content can always be scrolled
+// clear of the floating camera button (see AppTabBar.js).
+export const CAMERA_CLEARANCE = 96;

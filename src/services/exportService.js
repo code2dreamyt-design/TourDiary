@@ -9,134 +9,226 @@ import {
   WidthType,
   BorderStyle,
   AlignmentType,
-  HeadingLevel,
+  VerticalAlign,
 } from 'docx';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { formatDisplayDate, getMonthName } from '../utils/dateUtils';
+import { getMonthName } from '../utils/dateUtils';
 import { isWriteAllowed } from './entitlementService';
+import { saveDocxToPhone } from './deviceSave';
 
-const CELL_BORDER = {
-  top: { style: BorderStyle.SINGLE, size: 2, color: '999999' },
-  bottom: { style: BorderStyle.SINGLE, size: 2, color: '999999' },
-  left: { style: BorderStyle.SINGLE, size: 2, color: '999999' },
-  right: { style: BorderStyle.SINGLE, size: 2, color: '999999' },
-};
+// ---------------------------------------------------------------------------
+// Tour Diary Word document — layout matches the department's sample:
+//   A4, 1" margins, Times New Roman, all text bold 11pt
+//   Title  : "Tour Diary of Mr. <name> <designation> <beat> Beat during the month of <Month> <Year>"
+//   Sub    : "(w.e.f. 01-MM-YYYY to <last day>-MM-YYYY)"
+//   Table  : Date | From | To | Particular/Details of Work   (header repeats on every page)
+//   Signatures (below the table):
+//     - the person who wrote the diary, right-aligned (name + "<designation> <beat> beat")
+//     - Van Mitra / Forest Worker / Others :  Forest Guard I/C <beat> Beat | Forest Block Officer | Forest Range Officer
+//     - Forest Guard (the guard IS the I/C) :  Forest Block Officer | Forest Range Officer
+//   Footer credit line.
+// ---------------------------------------------------------------------------
 
-function headerCell(text, widthPercent) {
+const PAGE_CONTENT_WIDTH = 9026; // A4 (11906) minus 1" margins (2 x 1440)
+const COLS = [1354, 1805, 1805, 4062]; // 15% / 20% / 20% / 45%  (sums to 9026)
+
+const LINE = { style: BorderStyle.SINGLE, size: 4, color: '000000' };
+const CELL_BORDERS = { top: LINE, bottom: LINE, left: LINE, right: LINE };
+const NO_LINE = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+const NO_BORDERS = { top: NO_LINE, bottom: NO_LINE, left: NO_LINE, right: NO_LINE };
+
+const run = (text, extra = {}) => new TextRun({ text: text || '', bold: true, size: 22, ...extra });
+
+function tableCell(text, width, { center = false } = {}) {
   return new TableCell({
-    borders: CELL_BORDER,
-    width: { size: widthPercent, type: WidthType.PERCENTAGE },
-    shading: { fill: 'E7EFE9' },
+    width: { size: width, type: WidthType.DXA },
+    borders: CELL_BORDERS,
+    verticalAlign: VerticalAlign.TOP,
+    margins: { top: 0, bottom: 0, left: 10, right: 10 },
     children: [
       new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text, bold: true, size: 22 })],
+        alignment: center ? AlignmentType.CENTER : AlignmentType.LEFT,
+        children: [run(text)],
       }),
     ],
   });
 }
 
-function bodyCell(text, widthPercent) {
+function signatureCell(lines, width) {
   return new TableCell({
-    borders: CELL_BORDER,
-    width: { size: widthPercent, type: WidthType.PERCENTAGE },
-    children: [new Paragraph({ children: [new TextRun({ text: text || '', size: 20 })] })],
+    width: { size: width, type: WidthType.DXA },
+    borders: NO_BORDERS,
+    children: lines.map(
+      (t) => new Paragraph({ alignment: AlignmentType.CENTER, children: [run(t)] })
+    ),
   });
 }
 
-// This function is the single place that defines the exported table's shape.
-// Swapping in an official government format later means changing this
-// function (and/or adding a new build*Document variant) without touching
-// the screens that call exportDiaryToWord().
-export function buildTourDiaryDocument({ month, year, entries, profile }) {
-  const headerRow = new TableRow({
-    tableHeader: true,
-    children: [
-      headerCell('S.No.', 8),
-      headerCell('Date', 14),
-      headerCell('From', 22),
-      headerCell('To', 22),
-      headerCell('Remarks', 34),
+/** 'YYYY-MM-DD' -> 'DD-MM-YYYY' */
+function dmy(dateString) {
+  const [y, m, d] = String(dateString || '').split('-');
+  return y && m && d ? `${d}-${m}-${y}` : String(dateString || '');
+}
+
+function two(n) {
+  return String(n).padStart(2, '0');
+}
+
+const clean = (v) => (v && String(v).trim()) || '';
+
+function isForestGuard(designation) {
+  return clean(designation).toLowerCase() === 'forest guard';
+}
+
+// "Van Mitra Pharog" — designation is left out for the generic "Others".
+function designationLabel(designation) {
+  const d = clean(designation);
+  return d && d.toLowerCase() !== 'others' ? d : '';
+}
+
+function joinWords(...parts) {
+  return parts.map(clean).filter(Boolean).join(' ');
+}
+
+function buildTitle(profile, month, year) {
+  const who = joinWords(profile.salutation || 'Mr.', profile.name, designationLabel(profile.designation));
+  const beat = clean(profile.beatName) ? `${clean(profile.beatName)} Beat ` : '';
+  return `Tour Diary of ${who} ${beat}during the month of ${getMonthName(month)} ${year}`.replace(/\s+/g, ' ');
+}
+
+function buildSignatureBlock(profile) {
+  const beat = clean(profile.beatName);
+  const block = clean(profile.forestBlock);
+  const range = clean(profile.forestRange);
+  const guard = isForestGuard(profile.designation);
+
+  // The writer's own signature, right-aligned: name, then "<designation> <beat> beat".
+  const nameLine = joinWords(profile.salutation || 'Mr.', profile.name);
+  const roleLine = joinWords(designationLabel(profile.designation), beat, beat ? 'beat' : '');
+
+  // Forest Guard writes his own diary, so there is no separate "Forest Guard I/C" column.
+  const columns = [];
+  if (!guard) columns.push(['Forest Guard', joinWords('I/C', beat, beat ? 'Beat' : '')]);
+  columns.push(['Forest Block Officer', joinWords('Forest Block', block)]);
+  columns.push(['Forest Range Officer', joinWords('Forest Range', range)]);
+
+  const base = Math.floor(PAGE_CONTENT_WIDTH / columns.length);
+  const widths = columns.map((_, i) => (i === columns.length - 1 ? PAGE_CONTENT_WIDTH - base * (columns.length - 1) : base));
+
+  const sigTable = new Table({
+    width: { size: PAGE_CONTENT_WIDTH, type: WidthType.DXA },
+    columnWidths: widths,
+    borders: {
+      top: NO_LINE, bottom: NO_LINE, left: NO_LINE, right: NO_LINE,
+      insideHorizontal: NO_LINE, insideVertical: NO_LINE,
+    },
+    rows: [
+      new TableRow({
+        cantSplit: true,
+        children: columns.map((lines, i) => signatureCell(lines, widths[i])),
+      }),
     ],
   });
 
-  const dataRows = entries.map(
-    (entry) =>
+  return [
+    new Paragraph({ spacing: { before: 300 }, children: [] }),
+    new Paragraph({ spacing: { before: 300 }, children: [] }),
+    new Paragraph({ keepNext: true, keepLines: true, alignment: AlignmentType.RIGHT, children: [run(nameLine)] }),
+    new Paragraph({
+      keepNext: true,
+      keepLines: true,
+      alignment: AlignmentType.RIGHT,
+      spacing: { after: 200 },
+      children: [run(roleLine)],
+    }),
+    new Paragraph({ keepNext: true, keepLines: true, alignment: AlignmentType.RIGHT, spacing: { after: 200 }, children: [] }),
+    new Paragraph({ keepNext: true, keepLines: true, alignment: AlignmentType.RIGHT, spacing: { after: 200 }, children: [] }),
+    sigTable,
+  ];
+}
+
+// This function is the single place that defines the exported diary's shape.
+// `profile` = { name, salutation, designation, beatName, forestBlock, forestRange }.
+export function buildTourDiaryDocument({ month, year, entries, profile }) {
+  const p = profile || {};
+  const mm = two(month);
+  const lastDay = new Date(year, month, 0).getDate();
+
+  const header = new TableRow({
+    tableHeader: true,
+    cantSplit: true,
+    children: ['Date', 'From', 'To', 'Particular/Details of Work'].map((t, i) =>
+      tableCell(t, COLS[i], { center: true })
+    ),
+  });
+
+  const rows = entries.map(
+    (e) =>
       new TableRow({
         children: [
-          bodyCell(String(entry.serial_number), 8),
-          bodyCell(formatDisplayDate(entry.date), 14),
-          bodyCell(entry.from_location, 22),
-          bodyCell(entry.to_location, 22),
-          bodyCell(entry.remarks, 34),
+          tableCell(dmy(e.date), COLS[0], { center: true }),
+          tableCell(e.from_location, COLS[1]),
+          tableCell(e.to_location, COLS[2]),
+          tableCell(e.remarks, COLS[3]),
         ],
       })
   );
 
-  const table = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [headerRow, ...dataRows],
-  });
-
-  const titleText = buildDocumentTitle(profile);
   const children = [
     new Paragraph({
-      heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: titleText, bold: true })],
+      spacing: { after: 80 },
+      children: [run(buildTitle(p, month, year), { size: 32 })],
     }),
-  ];
-
-  if (profile && profile.designation && profile.designation.trim()) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 80 },
-        children: [new TextRun({ text: profile.designation.trim(), italics: true, size: 22 })],
-      })
-    );
-  }
-
-  children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 200 },
-      children: [new TextRun({ text: `${getMonthName(month)} ${year}`, size: 26 })],
+      children: [run(`(w.e.f. 01-${mm}-${year} to ${two(lastDay)}-${mm}-${year})`, { size: 28 })],
     }),
-    table,
+    new Table({
+      width: { size: PAGE_CONTENT_WIDTH, type: WidthType.DXA },
+      columnWidths: COLS,
+      rows: [header, ...rows],
+    }),
+    ...buildSignatureBlock(p),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 300 },
       children: [new TextRun({ text: 'App developed by Vikas Justa', italics: true, size: 16, color: '8B958F' })],
-    })
-  );
+    }),
+  ];
 
   return new Document({
+    styles: { default: { document: { run: { font: 'Times New Roman' } } } },
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+          },
+        },
         children,
       },
     ],
   });
 }
 
-// "Tour Diary of Mr. Ramesh Kumar" — falls back to a plain "Tour Diary"
-// title if no profile/name is available (should not normally happen, since
-// the app requires a profile before any diary can be created).
-function buildDocumentTitle(profile) {
-  const name = profile && profile.name && profile.name.trim();
-  if (!name) return 'Tour Diary';
-  const salutation = profile.salutation && profile.salutation.trim() ? profile.salutation.trim() : 'Mr.';
-  return `Tour Diary of ${salutation} ${name}`;
+/** Profile fields the diary document needs, from the signed-in user + saved salutation. */
+export function buildDiaryProfile(user, salutation) {
+  return {
+    name: user && user.name,
+    salutation: salutation || 'Mr.',
+    designation: user && user.designation,
+    beatName: user && user.beatName,
+    forestBlock: user && user.forestBlock,
+    forestRange: user && user.forestRange,
+  };
 }
 
 /**
- * Builds the .docx, writes it to app storage, then opens the native
- * share/save sheet so the user can actually get the file off the device.
- * Returns the file URI. Throws with a `.code` on failure so screens can
- * show a plain-language message.
+ * Builds the .docx and saves it onto the phone (see deviceSave.js).
+ * Resolves with { kind, fileName, ... }; throws with a `.code` on failure so
+ * screens can show a plain-language message (see utils/exportUi.js).
  */
 export async function exportDiaryToWord({ month, year, entries, profile }) {
   // Exporting takes data OUT of the app's private storage — treated as a
@@ -156,47 +248,12 @@ export async function exportDiaryToWord({ month, year, entries, profile }) {
 
   let base64;
   try {
-    const doc = buildTourDiaryDocument({ month, year, entries, profile });
-    base64 = await Packer.toBase64String(doc);
+    base64 = await Packer.toBase64String(buildTourDiaryDocument({ month, year, entries, profile }));
   } catch (err) {
     const wrapped = new Error('Unable to generate the Word document.');
     wrapped.code = 'BUILD_FAILED';
     throw wrapped;
   }
 
-  const fileName = `TourDiary_${getMonthName(month)}_${year}.docx`;
-  const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-
-  try {
-    await FileSystem.writeAsStringAsync(fileUri, base64, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-  } catch (err) {
-    const wrapped = new Error('Unable to save the Word document to this device.');
-    wrapped.code = 'WRITE_FAILED';
-    throw wrapped;
-  }
-
-  const canShare = await Sharing.isAvailableAsync();
-  if (!canShare) {
-    const err = new Error('Sharing is not available on this device.');
-    err.code = 'SHARING_UNAVAILABLE';
-    err.fileUri = fileUri;
-    throw err;
-  }
-
-  try {
-    await Sharing.shareAsync(fileUri, {
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      dialogTitle: 'Save / Share Tour Diary',
-      UTI: 'org.openxmlformats.wordprocessingml.document',
-    });
-  } catch (err) {
-    const wrapped = new Error('Unable to open the share dialog.');
-    wrapped.code = 'SHARE_FAILED';
-    wrapped.fileUri = fileUri;
-    throw wrapped;
-  }
-
-  return fileUri;
+  return saveDocxToPhone({ fileName: `TourDiary_${getMonthName(month)}_${year}.docx`, base64 });
 }

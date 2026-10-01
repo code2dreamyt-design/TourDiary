@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeStackNavigator from './HomeStackNavigator';
 import MyDiariesStackNavigator from './MyDiariesStackNavigator';
 import CameraCaptureScreen from '../screens/CameraCaptureScreen';
-import TDPlaceholderScreen from '../screens/TDPlaceholderScreen';
+import TDStackNavigator from './TDStackNavigator';
 import AppTabBar from '../components/AppTabBar';
 
 const Tab = createBottomTabNavigator();
@@ -25,10 +25,7 @@ export default function MainTabNavigator() {
         // MyDiaries / TD all use the app's light background.
         options={{ headerShown: false, sceneStyle: { backgroundColor: '#000' } }}
       />
-      {/* Real screen exists as a fallback only — AppTabBar intercepts the
-          tab press and shows a "coming soon" toast instead of navigating
-          here. See AppTabBar.js's goTo and TDPlaceholderScreen. */}
-      <Tab.Screen name="TD" component={TDPlaceholderScreen} />
+      <Tab.Screen name="TD" component={TDStackNavigator} />
     </Tab.Navigator>
   );
 }

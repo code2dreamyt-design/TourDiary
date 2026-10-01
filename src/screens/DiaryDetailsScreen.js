@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as diaryService from '../services/diaryService';
-import { exportDiaryToWord } from '../services/exportService';
+import { exportDiaryToWord, buildDiaryProfile } from '../services/exportService';
+import { presentExportError, presentExportResult } from '../utils/exportUi';
 import { useAuth } from '../context/AuthContext';
 import * as secureStorage from '../storage/secureStorage';
 import DiaryEntryCard from '../components/DiaryEntryCard';
@@ -14,6 +15,8 @@ import { getMonthName } from '../utils/dateUtils';
 import { validateEntry } from '../utils/validation';
 
 const PAGE_SIZE = 3;
+// Extra scroll room so the last content never sits under the floating camera button.
+const CAMERA_CLEARANCE = 96;
 
 export default function DiaryDetailsScreen({ route, navigation }) {
   const { diaryId } = route.params;
@@ -31,6 +34,7 @@ export default function DiaryDetailsScreen({ route, navigation }) {
   const [saveError, setSaveError] = useState(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const scrollRef = useRef(null);
 
   const defaultFromLocation = user?.usualTourStart || '';
 
@@ -60,9 +64,12 @@ export default function DiaryDetailsScreen({ route, navigation }) {
 
   const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
+
+  function selectPage(p) {
+    setPage(p);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }
   const pageEntries = entries.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-  const startIndex = entries.length === 0 ? 0 : safePage * PAGE_SIZE + 1;
-  const endIndex = Math.min(safePage * PAGE_SIZE + PAGE_SIZE, entries.length);
 
   const progress = useMemo(() => {
     const completed = entries.filter((e) => e.status === 'COMPLETED').length;
@@ -127,19 +134,11 @@ export default function DiaryDetailsScreen({ route, navigation }) {
     if (!diary) return;
     setExporting(true);
     try {
-      const profile = { name: user?.name, salutation, designation: user?.designation };
-      await exportDiaryToWord({ month: diary.month, year: diary.year, entries, profile });
+      const profile = buildDiaryProfile(user, salutation);
+      const result = await exportDiaryToWord({ month: diary.month, year: diary.year, entries, profile });
+      presentExportResult(result);
     } catch (err) {
-      if (err.code === 'SHARING_UNAVAILABLE') {
-        Alert.alert('File Saved', 'Sharing is not available on this device, but the Word file was saved to app storage.');
-      } else if (err.code === 'WRITE_LOCKED') {
-        Alert.alert('Subscription Required', err.message, [
-          { text: 'Not Now', style: 'cancel' },
-          { text: 'Subscribe', onPress: () => navigation.navigate('Subscription') },
-        ]);
-      } else {
-        Alert.alert('Export Failed', err.message || 'Unable to generate the Word document. Please try again.');
-      }
+      presentExportError(err, navigation);
     } finally {
       setExporting(false);
     }
@@ -202,7 +201,14 @@ export default function DiaryDetailsScreen({ route, navigation }) {
   const remaining = progress.total - progress.completed;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <View style={styles.screen}>
+    <NavigationControls
+      total={entries.length}
+      pageSize={PAGE_SIZE}
+      currentPage={safePage}
+      onSelectPage={selectPage}
+    />
+    <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>
         {getMonthName(diary.month)} {diary.year}
       </Text>
@@ -268,17 +274,8 @@ export default function DiaryDetailsScreen({ route, navigation }) {
           />
         );
       })}
-
-      <NavigationControls
-        startIndex={startIndex}
-        endIndex={endIndex}
-        total={entries.length}
-        hasPrevious={safePage > 0}
-        hasNext={safePage < totalPages - 1}
-        onPrevious={() => setPage(safePage - 1)}
-        onNext={() => setPage(safePage + 1)}
-      />
     </ScrollView>
+    </View>
   );
 }
 
@@ -330,7 +327,9 @@ function EditEntryForm({ entry, draft, setDraft, onSave, onCancel, saving, error
 }
 
 const styles = StyleSheet.create({
-  container: { padding: SPACING.lg, backgroundColor: COLORS.background, flexGrow: 1 },
+  screen: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { flex: 1 },
+  container: { padding: SPACING.lg, paddingBottom: CAMERA_CLEARANCE, backgroundColor: COLORS.background, flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary, marginBottom: SPACING.sm },
   errorText: { color: COLORS.dangerText, marginTop: SPACING.sm, fontSize: FONT_SIZE.base },
