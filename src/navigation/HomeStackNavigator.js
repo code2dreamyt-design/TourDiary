@@ -3,9 +3,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import DiaryDetailsScreen from '../screens/DiaryDetailsScreen';
 import HeaderAvatar from '../components/HeaderAvatar';
+import { withTrialBanner } from '../components/TrialOfferBanner';
 import { COLORS } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
+const HomeWithBanner = withTrialBanner(HomeScreen);
 
 export default function HomeStackNavigator() {
   return (
@@ -20,7 +22,7 @@ export default function HomeStackNavigator() {
         headerRight: () => <HeaderAvatar />,
       }}
     >
-      <Stack.Screen name="HomeMain" component={HomeScreen} options={{ title: 'Tour Diary' }} />
+      <Stack.Screen name="HomeMain" component={HomeWithBanner} options={{ title: 'Tour Diary' }} />
       <Stack.Screen name="DiaryDetails" component={DiaryDetailsScreen} options={{ title: 'Diary' }} />
     </Stack.Navigator>
   );

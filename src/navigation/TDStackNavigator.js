@@ -7,9 +7,11 @@ import TDResultScreen from '../screens/td/TDResultScreen';
 import TDExportScreen from '../screens/td/TDExportScreen';
 import HeaderAvatar from '../components/HeaderAvatar';
 import { TDDraftProvider } from '../context/TDDraftContext';
+import { withTrialBanner } from '../components/TrialOfferBanner';
 import { COLORS } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
+const TDHomeWithBanner = withTrialBanner(TDHomeScreen);
 
 // The TD tab. The draft provider wraps the whole stack so the form -> sizes
 // -> result screens share one in-progress TD.
@@ -24,7 +26,7 @@ export default function TDStackNavigator() {
           headerRight: () => <HeaderAvatar />,
         }}
       >
-        <Stack.Screen name="TDHome" component={TDHomeScreen} options={{ title: 'TD Calculator' }} />
+        <Stack.Screen name="TDHome" component={TDHomeWithBanner} options={{ title: 'TD Calculator' }} />
         <Stack.Screen name="TDForm" component={TDFormScreen} options={{ title: 'TD Details' }} />
         <Stack.Screen name="TDSizes" component={TDSizesScreen} options={{ title: 'Sizes' }} />
         <Stack.Screen name="TDResult" component={TDResultScreen} options={{ title: 'Result' }} />

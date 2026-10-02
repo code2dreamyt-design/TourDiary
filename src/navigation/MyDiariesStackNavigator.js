@@ -4,9 +4,11 @@ import MyDiariesScreen from '../screens/MyDiariesScreen';
 import CreateDiaryScreen from '../screens/CreateDiaryScreen';
 import DiaryDetailsScreen from '../screens/DiaryDetailsScreen';
 import HeaderAvatar from '../components/HeaderAvatar';
+import { withTrialBanner } from '../components/TrialOfferBanner';
 import { COLORS } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
+const MyDiariesWithBanner = withTrialBanner(MyDiariesScreen);
 
 export default function MyDiariesStackNavigator() {
   return (
@@ -22,7 +24,7 @@ export default function MyDiariesStackNavigator() {
         headerRight: () => <HeaderAvatar />,
       }}
     >
-      <Stack.Screen name="MyDiariesMain" component={MyDiariesScreen} options={{ title: 'My Diaries' }} />
+      <Stack.Screen name="MyDiariesMain" component={MyDiariesWithBanner} options={{ title: 'My Diaries' }} />
       <Stack.Screen name="CreateDiary" component={CreateDiaryScreen} options={{ title: 'Create Full Diary' }} />
       <Stack.Screen name="DiaryDetails" component={DiaryDetailsScreen} options={{ title: 'Diary' }} />
     </Stack.Navigator>
