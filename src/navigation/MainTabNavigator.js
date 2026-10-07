@@ -4,6 +4,7 @@ import HomeStackNavigator from './HomeStackNavigator';
 import MyDiariesStackNavigator from './MyDiariesStackNavigator';
 import CameraCaptureScreen from '../screens/CameraCaptureScreen';
 import TDStackNavigator from './TDStackNavigator';
+import NotesStackNavigator from './NotesStackNavigator';
 import AppTabBar from '../components/AppTabBar';
 
 const Tab = createBottomTabNavigator();
@@ -26,6 +27,8 @@ export default function MainTabNavigator() {
         options={{ headerShown: false, sceneStyle: { backgroundColor: '#000' } }}
       />
       <Tab.Screen name="TD" component={TDStackNavigator} />
+      {/* lazy: false so alert syncing + notification taps work from app start, not only after the tab is first opened */}
+      <Tab.Screen name="Notes" component={NotesStackNavigator} options={{ lazy: false }} />
     </Tab.Navigator>
   );
 }

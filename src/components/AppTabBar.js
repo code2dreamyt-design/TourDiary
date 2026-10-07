@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
@@ -11,12 +12,14 @@ const TAB_ICON_NAMES = {
   Home: 'home',
   MyDiaries: 'book',
   TD: 'calculator',
+  Notes: 'journal',
 };
 
 const TAB_LABELS = {
   Home: 'Home',
   MyDiaries: 'My Diaries',
   TD: 'TD',
+  Notes: 'Notebook',
 };
 
 // Custom tab bar so the Camera button can float in a fixed spot,
@@ -32,6 +35,12 @@ export default function AppTabBar({ state, descriptors, navigation }) {
   // completely while the Camera screen is active — nothing to navigate to
   // while composing a shot, and it keeps the viewfinder full-screen.
   if (cameraFocused) return null;
+
+  // Same for the Notebook's forms and its camera: they are full-screen tasks with
+  // their own Save / Close buttons, and the floating camera button must not
+  // cover them (or appear on top of the observation camera).
+  const focusedRoute = state.routes[state.index];
+  if (focusedRoute?.name === 'Notes' && HIDE_BAR_ON.includes(getFocusedRouteNameFromRoute(focusedRoute))) return null;
 
   const bottomInset = Math.max(insets.bottom, SPACING.sm);
 
@@ -82,6 +91,9 @@ export default function AppTabBar({ state, descriptors, navigation }) {
     </View>
   );
 }
+
+// Screens inside the Notebook tab that hide the bottom bar.
+const HIDE_BAR_ON = ['SimpleNote', 'Observation', 'Reminder', 'NotesSettings', 'NotesCamera'];
 
 const BAR_HEIGHT = 58;
 const CAMERA_SIZE = 54;
