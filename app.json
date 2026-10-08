@@ -2,7 +2,7 @@
   "expo": {
     "name": "Forest App",
     "slug": "TourDiary",
-    "version": "1.2.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import ToastHost from './src/components/Toast';
+import BannerHost from './src/components/banner/BannerHost';
 import { runMigrations } from './src/database/migrations';
 import { AuthProvider } from './src/context/AuthContext';
 import { COLORS } from './src/constants/colors';
@@ -48,6 +49,7 @@ export default function App() {
       <StatusBar style="light" />
       <AuthProvider>
         <AppNavigator />
+        <BannerHost />
       </AuthProvider>
       <ToastHost />
     </SafeAreaProvider>
