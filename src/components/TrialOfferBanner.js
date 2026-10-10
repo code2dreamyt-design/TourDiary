@@ -5,8 +5,8 @@ import * as subscriptionApi from '../api/subscriptionApi';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { showErrorToast } from './Toast';
-import { isTrialOfferDone, markTrialOfferDone } from '../services/trialOfferService';
-import { TRIAL_DAYS, TRIAL_OFFER_ENDS_AT, isTrialOfferOpen, trialOfferLastDayLabel } from '../config/trialOffer';
+import { isTrialOfferDone, markTrialOfferDone, refreshTrialOffer } from '../services/trialOfferService';
+import { TRIAL_DAYS, getTrialOfferEndsAt, isTrialOfferOpen, trialOfferLastDayLabel } from '../config/trialOffer';
 import { COLORS } from '../constants/colors';
 import { SPACING, RADIUS, FONT_SIZE } from '../constants/dimensions';
 
@@ -40,8 +40,15 @@ export default function TrialOfferBanner({ onClaimed }) {
   const userId = user?._id;
   const [done, setDone] = useState(null); // null = still reading storage (render nothing yet)
   const [claiming, setClaiming] = useState(false);
+  const [, setOfferVersion] = useState(0); // re-render once the offer end date has been read from the server
   const mountedRef = useRef(true);
   useEffect(() => () => (mountedRef.current = false), []);
+
+  useEffect(() => {
+    refreshTrialOffer().then(() => {
+      if (mountedRef.current) setOfferVersion((n) => n + 1);
+    });
+  }, []);
 
   useEffect(() => {
     if (!userId) return undefined;
@@ -53,7 +60,7 @@ export default function TrialOfferBanner({ onClaimed }) {
     };
   }, [userId]);
 
-  const joinedInTime = !user?.createdAt || new Date(user.createdAt).getTime() < TRIAL_OFFER_ENDS_AT.getTime();
+  const joinedInTime = !user?.createdAt || new Date(user.createdAt).getTime() < getTrialOfferEndsAt().getTime();
   const visible = !!userId && done === false && !subscriptionActive && isTrialOfferOpen() && joinedInTime;
   if (!visible) return null;
 
